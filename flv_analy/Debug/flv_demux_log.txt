@@ -1,0 +1,92 @@
+Tue Oct 07 16:40:57 2014: flv demux version v1.0.0 d20141007_1621
+Tue Oct 07 16:40:57 2014: FLV_Demux::file name is ../sample.flvНээээЭЭЭЭЭЭќ<ќ7J«
+Tue Oct 07 16:40:57 2014: FLV_Demux::start_analy ../sample.flvНээээЭЭЭЭЭЭќ<ќ7J« is not flv file
+Tue Oct 07 16:41:34 2014: flv demux version v1.0.0 d20141007_1621
+Tue Oct 07 16:41:34 2014: FLV_Demux::file name is ../sample.flvНээээЭЭЭЭЭЭЉV“L;я
+Tue Oct 07 16:41:34 2014: FLV_Demux::start_analy ../sample.flvНээээЭЭЭЭЭЭЉV“L;я is not flv file
+Tue Oct 07 16:42:53 2014: flv demux version v1.0.0 d20141007_1621
+Tue Oct 07 16:42:53 2014: FLV_Demux::file name is ../sample.flvНээээЭЭЭЭЭЭр_РdО
+Tue Oct 07 16:42:53 2014: FLV_Demux::start_analy ../sample.flvНээээЭЭЭЭЭЭр_РdО is not flv file
+Tue Oct 07 16:42:54 2014: flv demux version v1.0.0 d20141007_1621
+Tue Oct 07 16:42:54 2014: FLV_Demux::file name is ../sample.flvНээээЭЭЭЭЭЭжџ_OС
+Tue Oct 07 16:42:54 2014: FLV_Demux::start_analy ../sample.flvНээээЭЭЭЭЭЭжџ_OС is not flv file
+Tue Oct 07 16:45:05 2014: flv demux version v1.0.0 d20141007_1621
+Tue Oct 07 16:45:05 2014: FLV_Demux::file name is ../sample.flv
+Tue Oct 07 16:45:05 2014: FLV_Demux::start_analy ../sample.flv is not flv file
+Tue Oct 07 16:45:29 2014: flv demux version v1.0.0 d20141007_1621
+Tue Oct 07 16:45:29 2014: FLV_Demux::file name is ../sample.flv
+Tue Oct 07 16:45:29 2014: FLV_Demux::start_analy ../sample.flv is not flv file
+Tue Oct 07 16:45:30 2014: flv demux version v1.0.0 d20141007_1621
+Tue Oct 07 16:45:30 2014: FLV_Demux::file name is ../sample.flv
+Tue Oct 07 16:45:30 2014: FLV_Demux::start_analy ../sample.flv is not flv file
+Tue Oct 07 16:45:30 2014: flv demux version v1.0.0 d20141007_1621
+Tue Oct 07 16:45:30 2014: FLV_Demux::file name is ../sample.flv
+Tue Oct 07 16:45:30 2014: FLV_Demux::start_analy ../sample.flv is not flv file
+Tue Oct 07 16:47:47 2014: flv demux version v1.0.0 d20141007_1621
+Tue Oct 07 16:47:47 2014: FLV_Demux::file name is ../sample.flv
+Tue Oct 07 16:47:47 2014: FLV_Demux::start_analy ../sample.flv is not flv file
+Tue Oct 07 17:19:30 2014: flv demux version v1.0.0 d20141007_1621
+Tue Oct 07 17:19:30 2014: FLV_Demux::file name is ../sample.flv
+Tue Oct 07 17:19:30 2014: FLV_Demux::start_analy ../sample.flv is flv file
+Tue Oct 07 17:19:44 2014: flv demux version v1.0.0 d20141007_1621
+Tue Oct 07 17:19:44 2014: FLV_Demux::file name is ../flv0
+Tue Oct 07 17:19:44 2014: FLV_Demux::start_analy ../flv0 is flv file
+Tue Oct 07 17:33:01 2014: flv demux version v1.0.0 d20141007_1621
+Tue Oct 07 17:33:01 2014: FLV_Demux::file name is ../flv0
+Tue Oct 07 17:33:01 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:35:27 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:35:28 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:35:28 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:37:10 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:37:10 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:37:10 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:39:24 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:39:24 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:39:24 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:39:39 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:39:39 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:39:39 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:39:44 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:39:44 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:39:45 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:41:45 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:41:45 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:41:45 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:43:59 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:43:59 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:43:59 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:44:16 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:44:16 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:44:16 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:44:37 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:44:37 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:44:37 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:44:55 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:44:55 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:44:55 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:45:02 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:45:03 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:45:03 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:46:24 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:46:24 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:46:24 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:47:56 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:47:56 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:47:56 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:48:07 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:48:07 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:48:07 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:48:30 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:48:30 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:48:30 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:51:57 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:51:57 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:51:57 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:52:33 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:52:33 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:52:33 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 22:54:06 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:54:06 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:55:13 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:55:13 2014: FLV_Demux::file name is ../flv0
+Fri Oct 10 22:55:16 2014: FLV_Demux::start_analy ../flv0 is flv file
