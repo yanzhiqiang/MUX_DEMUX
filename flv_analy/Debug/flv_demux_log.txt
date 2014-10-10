@@ -90,3 +90,8 @@ Fri Oct 10 22:54:06 2014: FLV_Demux::file name is ../flv0
 Fri Oct 10 22:55:13 2014: flv demux version v1.0.0 d20141007_1621
 Fri Oct 10 22:55:13 2014: FLV_Demux::file name is ../flv0
 Fri Oct 10 22:55:16 2014: FLV_Demux::start_analy ../flv0 is flv file
+Fri Oct 10 23:33:41 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 23:33:41 2014: FLV_Demux::file name is ../../flv0
+Fri Oct 10 23:34:06 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 23:34:06 2014: FLV_Demux::file name is ../../../flv0
+Fri Oct 10 23:34:09 2014: FLV_Demux::start_analy ../../../flv0 is flv file

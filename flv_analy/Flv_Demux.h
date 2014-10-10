@@ -1,6 +1,7 @@
 #ifndef __FLV_DEMUX_H
 #define __FLV_DEMUX_H
 
+#include <Windows.h>
 
 class FLV_Demux
 {
@@ -29,14 +30,16 @@ private:
 	int analy_flv();
 
 	//thread variable
-	//HANDLE Rec_Thread;
-	//HANDLE Dec_Thread;
+	HANDLE Rec_Thread;
+	HANDLE Dec_Thread;
 	bool	b_Rec;
 	bool	b_Dec;
 	int		m_writenum;
 	int		m_readnum;
 	int		m_writepos;
 	int		m_readpos;
+	// all stop 
+	bool	b_stop;
 };
 
 #endif

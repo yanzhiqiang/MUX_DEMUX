@@ -4,7 +4,7 @@
 #include <string.h>
 #include "log.h"
 #include "Judge_Type.h"
-#include <Windows.h>
+
 
 DWORD	WINAPI	Rec_Func(LPVOID	lpParam)
 {
@@ -35,6 +35,34 @@ FLV_Demux::FLV_Demux()
 
 FLV_Demux::~FLV_Demux()
 {
+	b_stop = true;
+	if(b_Dec || b_Rec)
+	{
+		Sleep(1000);
+	}
+
+	if(b_Dec)
+	{
+		printf("Dec Thread is not over,so killed\n");
+		TerminateThread(Dec_Thread,0);
+	}
+	else
+	{
+		CloseHandle(Dec_Thread); 
+	}
+	Dec_Thread=NULL;
+
+	if(b_Rec)
+	{
+		printf("Rec Thread is not over,so killed\n");
+		TerminateThread(Rec_Thread,0);
+	}
+	else
+	{
+		CloseHandle(Rec_Thread); 
+	}
+	Rec_Thread=NULL;
+
 	if(m_FileName)
 	{
 		free(m_FileName);
@@ -68,6 +96,7 @@ int FLV_Demux::setinit_params()
 	m_readnum=0;
 	m_writepos=0;
 	m_readpos=0;
+	b_stop = false;
 	return 0;
 }
 
@@ -113,11 +142,9 @@ int FLV_Demux::init(const char* filename)
 	printf("FLV_Demux::file name is %s\n",m_FileName);
 
 	//start two thread ,one for receive,one for decoder
-	//Rec_Thread = 
-		CreateThread(NULL,0,Rec_Func,(LPVOID)this,0,NULL); 
+	Rec_Thread = CreateThread(NULL,0,Rec_Func,(LPVOID)this,0,NULL); 
 
-	//Dec_Thread = 
-		CreateThread(NULL,0,Dec_Func,(LPVOID)this,0,NULL); 
+	Dec_Thread = CreateThread(NULL,0,Dec_Func,(LPVOID)this,0,NULL); 
 
 	for(int i=0;i<3;i++)
 	{
@@ -150,8 +177,11 @@ int FLV_Demux::start_recieve()
 				
 		while(!feof(fp))
 		{
-			//printf("i am here\n");
-			/*
+			if(b_stop)
+			{
+				break;
+			}
+
 			if(m_writenum > m_readnum +m_ContentLength-1)
 			{
 				Sleep(100);
@@ -159,7 +189,7 @@ int FLV_Demux::start_recieve()
 						,m_writenum,m_readnum,m_ContentLength-1);
 				continue;
 			}
-			*/
+			
 			int readsize = fread(m_Content[m_writepos],sizeof(unsigned char),m_ContentSize
 				,fp);
 
