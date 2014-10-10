@@ -1,0 +1,7 @@
+Tue Oct 07 16:23:04 2014: flv demux version v1.0.0 d20141007_1621
+Tue Oct 07 16:42:18 2014: flv demux version v1.0.0 d20141007_1621
+Tue Oct 07 16:42:18 2014: FLV_Demux::file name is C:\project\flv_analy\flv0═¤¤¤¤ллллллллю■
+Tue Oct 07 16:42:18 2014: FLV_Demux::start_analy C:\project\flv_analy\flv0═¤¤¤¤ллллллллю■ is not flv file
+Fri Oct 10 22:41:38 2014: flv demux version v1.0.0 d20141007_1621
+Fri Oct 10 22:41:38 2014: FLV_Demux::file name is C:\project\flv_analy\flv0
+Fri Oct 10 22:41:38 2014: FLV_Demux::start_analy C:\project\flv_analy\flv0 is flv file
