@@ -265,6 +265,7 @@ int FLV_Demux::decoder_data()
 
 	Sleep(3000);
 
+	//处理线程，视频优先处理，没有视频处理音频
 	while(true)
 	{
 		if(b_stop)

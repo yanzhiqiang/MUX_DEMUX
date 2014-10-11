@@ -40,6 +40,8 @@ private:
 	int		m_readpos;
 	// all stop 
 	bool	b_stop;
+	//视频和音频队列
+	
 };
 
 #endif
