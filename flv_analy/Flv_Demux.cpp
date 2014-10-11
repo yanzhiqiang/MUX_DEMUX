@@ -202,6 +202,9 @@ int FLV_Demux::start_recieve()
 						log_to_file(FLOG_NORMAL,"FLV_Demux::start_analy %s is not flv file",m_FileName);
 						goto START_ANALY_END;
 					}
+
+					//add analy header
+
 					m_BFirst = false;
 
 					log_to_file(FLOG_NORMAL,"FLV_Demux::start_analy %s is flv file",m_FileName);
@@ -261,6 +264,23 @@ int FLV_Demux::decoder_data()
 	printf("decoder data start\n");
 
 	Sleep(3000);
+
+	while(true)
+	{
+		if(b_stop)
+		{
+			break;
+		}
+		//no data
+		if(m_readnum <= m_writenum)
+		{
+			Sleep(3);
+			continue;
+		}
+
+		//analy tag
+
+	}
 
 
 	printf("decoder data end\n");
