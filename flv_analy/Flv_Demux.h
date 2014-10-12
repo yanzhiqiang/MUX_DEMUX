@@ -30,9 +30,19 @@ private:
 	//private 
 	int setinit_params();
 	int start_recieve();
+
 	int analy_flv();
 	int analy_flvhead(unsigned char* src);
-	int analy_scripttag(unsigned char* src);
+	
+	int analy_scripttag(unsigned char* src,int size);
+	int analy_taghead(unsigned char* src,int size);
+	int analy_scriptdata(unsigned char* src,int size);
+	
+	int analy_audiotag(unsigned char* src,int size);
+	int analy_audioinfo(unsigned char* src);
+
+	int analy_videotag(unsigned char* src,int size);
+	int analy_videoinfo(unsigned char* src);
 
 	//thread variable
 	HANDLE Rec_Thread;
@@ -48,6 +58,9 @@ private:
 	
 	struct Video_Frame m_VideoFrame;
 	struct Audio_Frame m_AudioFrame;
+
+	int m_TagDataLength;
+
 };
 
 #endif

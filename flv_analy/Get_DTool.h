@@ -14,7 +14,11 @@ struct Audio_Frame
 };
 
 
-unsigned int Get_Int(unsigned char*src,int btyes);
+unsigned int Get_Int(unsigned char*src,int bytes);
+unsigned int Get_Int_Reverse(unsigned char* src,int bytes);
 
+double char2double(unsigned char * buf,unsigned int size);
+
+unsigned int Get_Bits(unsigned char* src,unsigned int bits);
 
 #endif

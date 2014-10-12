@@ -10,6 +10,7 @@
 #define VIDEO_NUM	25*2
 #define AUDIO_NUM	50*2
 #define READ_BUFFERSIZE	1024*1024
+#define SUM_NUM		6
 
 
 DWORD	WINAPI	Rec_Func(LPVOID	lpParam)
@@ -79,6 +80,18 @@ FLV_Demux::~FLV_Demux()
 		free(m_Content);
 		m_Content=NULL;
 	}
+
+	if(m_VideoQueue)
+	{
+		delete m_VideoQueue;
+		m_VideoQueue = NULL;
+	}
+
+	if(m_AudioQueue)
+	{
+		delete m_AudioQueue;
+		m_AudioQueue = NULL;
+	}
 }
 
 int FLV_Demux::setinit_params()
@@ -92,6 +105,8 @@ int FLV_Demux::setinit_params()
 	b_stop = false;
 	m_VideoQueue = NULL;
 	m_AudioQueue = NULL;
+	m_TagDataLength=0;
+	
 	return 0;
 }
 
@@ -126,6 +141,7 @@ int FLV_Demux::init(const char* filename)
 	m_AudioQueue = new Simple_Queue();
 	m_AudioQueue->init(AUDIO_NUM,sizeof(m_AudioFrame));
 
+	
 	log_to_file(FLOG_NORMAL,"FLV_Demux::file name is %s",m_FileName);
 	printf("FLV_Demux::file name is %s\n",m_FileName);
 
@@ -158,73 +174,149 @@ int FLV_Demux::start_recieve()
 	//open file
 	FILE* fp =  NULL;
 	fp = fopen(m_FileName,"rb");
+	
 	if(fp)
 	{	
 		printf("start_recieve fopen %s success\n"
 						,m_FileName);
-				
+		
+		
+		int readsize = 0;
+		int readpos=0;
 		while(!feof(fp))
 		{
 			if(b_stop)
 			{
 				break;
 			}
+			
 			int analypos = 0;
-			int readsize = fread(m_Content,sizeof(unsigned char),READ_BUFFERSIZE
-				,fp);
+
+			readsize = readpos + fread(m_Content+readpos,sizeof(unsigned char),READ_BUFFERSIZE-readpos
+						,fp);
 
 			if(m_BFirst)
 			{
-				if(readsize > 3)
+				if(readsize <3)
 				{
-					if(CheckFLV(m_Content) != 0)
-					{
-						log_to_file(FLOG_NORMAL,"FLV_Demux::start_analy %s is not flv file",m_FileName);
-						goto START_ANALY_END;
-					}
+					printf("FLV_Demux::start_recieve readsize(%d) < 3\n",readsize);
+					continue;
+				}
+				if(CheckFLV(m_Content) != 0)
+				{
+					log_to_file(FLOG_NORMAL,"FLV_Demux::start_recieve %s is not flv file",m_FileName);
+					goto START_ANALY_END;
+				}
 
 					
-					m_BFirst = false;
+				m_BFirst = false;
 
-					log_to_file(FLOG_NORMAL,"FLV_Demux::start_analy %s is flv file",m_FileName);
-					printf("FLV_Demux::start_analy %s is flv file\n",m_FileName);
+				log_to_file(FLOG_NORMAL,"FLV_Demux::start_recieve %s is flv file",m_FileName);
+				printf("FLV_Demux::start_recieve %s is flv file\n",m_FileName);
 
-					//add analy header
-					analypos += analy_flvhead(m_Content);
+				//add analy header
+				if(readsize <9)
+				{
+					printf("FLV_Demux::start_recieve readsize(%d) < 9,can't analy flvheander\n",readsize);
+					continue;
+				}
+				analypos += analy_flvhead(m_Content);
+				
+			}
 
-
+			if(readsize < analypos + 5)
+			{
+				printf("FLV_Demux::start_recieve readsize(%d) <analypos(%d) + 5,can't analy flvtag\n"
+					,readsize,analypos);
+					
+				continue;
+			}
+			
+			//pre tag length
+			while(analypos < readsize)
+			{
+				if(b_stop)
+				{
+					goto START_ANALY_END;
+				}
+				printf("pre tag length is %u\n"
+						,Get_Int(m_Content+analypos,4));
+				analypos+=4;
+				
+				if(analypos >= readsize)
+				{
+					printf("analy normal,%d %d\n"
+						,analypos,readsize);
+					break;
+				}
+				if(*(m_Content+analypos) == 0x12)
+				{
+					//analy script
+					int ret = analy_scripttag(m_Content+analypos,readsize-analypos);
+					if(ret > 0)
+					{
+						analypos +=ret;
+						
+					}
+					else
+					{
+						break;
+					}
+				}
+				else if(*(m_Content+analypos) == 0x08)
+				{
+					//audio
+					int ret = analy_audiotag(m_Content+analypos,readsize-analypos);
+					if(ret > 0)
+					{
+						analypos+=ret;
+						
+					}
+					else
+					{
+						break;
+					}
+				}
+				else if(*(m_Content+analypos) == 0x09)
+				{
+					//video
+					int ret = analy_videotag(m_Content+analypos,readsize-analypos);
+					if(ret > 0)
+					{
+						analypos+=ret;
+						
+					}
+					else
+					{
+						break;
+					}
 				}
 				else
 				{
-					//log_to_file(FLOG_NORMAL,"");
-					printf("FLV_Demux::start_analy readsize(%d) <3\n",readsize);
+					printf("no such tag,%0x\n",*(m_Content+analypos));
+					ret = -1;
 					goto START_ANALY_END;
 				}
 			}
-
-			if(*(m_Content+analypos+4) == 0x12)
-			{
-				//analy script
-
-			}
-			else if(*(m_Content+analypos+4) == 0x08)
-			{
-				//audio
-
-			}
-			else if(*(m_Content+analypos+4) == 0x09)
-			{
-				//video
-			}
-			else
-			{
-				printf("no such tag,%0x",*(m_Content+analypos+4));
-			}
 			
+			analypos-=4;	//analypos break出来的时候要还原。
+
+			printf("analypos=%d,readsize=%d\n"
+					,analypos,readsize);
+			
+			//copy
+			if(analypos < readsize)
+			{
+				//同一片内存区域，所以尽量自己保证拷贝正确。
+				for(int i=0;i<readsize-analypos;i++)
+				{
+					m_Content[i]=m_Content[analypos+i];
+				}
+				readpos = readsize - analypos;
+			}
+
 		}
-		//printf("start_recieve read %s over\n"
-			//			,m_FileName);
-			
+		
 	}
 
 START_ANALY_END:
@@ -237,9 +329,277 @@ START_ANALY_END:
 	return ret;
 }
 
-int FLV_Demux::analy_scripttag(unsigned char* src)
+int FLV_Demux::analy_videotag(unsigned char* src,int src_size)
 {
 	int size = 0;
+
+	int ret = analy_taghead(src+size,src_size);
+	if(ret <= 0)
+	{
+		return 0;
+	}
+	size += ret;
+	src_size -= size;
+
+	if(src_size <m_TagDataLength)
+	{
+		printf("video tag length(%d) < datalength(%u)\n"
+			,src_size,m_TagDataLength);
+		return -1;
+	}
+
+	analy_videoinfo(src+size);
+
+	size += m_TagDataLength;
+
+	return size;
+}
+
+int FLV_Demux::analy_videoinfo(unsigned char* src)
+{
+	unsigned int tmp = Get_Bits(src,0xF0);
+	printf("video key frame is %d\n",tmp/16);
+
+	tmp =  Get_Bits(src,0x0F);
+	printf("video encode id is %d\n",tmp);
+
+	return 0;
+}
+
+int FLV_Demux::analy_audiotag(unsigned char* src,int src_size)
+{
+	int size  = 0;
+
+	int ret = analy_taghead(src+size,src_size); 
+	if(ret <= 0)
+	{
+		return 0;
+	}
+	size += ret;
+	src_size -= size;
+
+	if(src_size <m_TagDataLength)
+	{
+		printf("audio tag length(%d) < datalength(%u)\n"
+			,src_size,m_TagDataLength);
+		return -1;
+	}
+	
+	analy_audioinfo(src+size);
+
+	size += m_TagDataLength;
+
+	return size;
+}
+
+int FLV_Demux::analy_audioinfo(unsigned char* src)
+{
+	unsigned int tmp = Get_Bits(src,0xF0);
+	printf("audio format is %u\n",tmp/16);
+
+	tmp = Get_Bits(src,0x0C);
+	printf("audio samplerate is %u\n",tmp/4);
+
+	tmp = Get_Bits(src,0x02);
+	printf("audio bits is %u\n",tmp/2);
+
+	tmp =  Get_Bits(src,0x01);
+	printf("audio class is %u\n",tmp);
+
+	return 0;
+}
+
+int FLV_Demux::analy_scripttag(unsigned char* src,int src_size)
+{
+	int size = 0;
+
+	
+
+	int ret = analy_taghead(src+size,src_size); 
+	if(ret <= 0)
+	{
+		return 0;
+	}
+	size += ret;
+	src_size -= size;
+
+	if(src_size <m_TagDataLength)
+	{
+		printf("tag length(%d) < datalength(%u)\n"
+			,src_size,m_TagDataLength);
+		return -1;
+	}
+
+	if(m_TagDataLength != analy_scriptdata(src+size,src_size))
+	{
+		printf("script data len != (%d)\n"
+		,m_TagDataLength);
+		return -1;
+	}
+	
+	size+=m_TagDataLength;
+	//m_TagDataLength != ret
+	
+	return size;
+}
+
+int FLV_Demux::analy_scriptdata(unsigned char* src,int src_size)
+{
+	//第一个字节是固定的。
+	int size = 0;
+	if(src[0]!=0x02)
+	{
+		printf("script tag 1 head(%x) is not 0x02\n"
+				,src[0]);
+		return -1;
+	}
+	size++;
+	
+	unsigned int tmp = Get_Int(src+size,2);
+	if(tmp!=10)
+	{
+		printf("script tag 1 head length(%x) is not 0x0A\n"
+				,*(src+size));
+		return -2;
+	}
+	size+=2;
+
+	//开始固定的头部分析
+	size+=10;	//跳过固定的头 onMetaData 这是给flashvideo 调用api
+
+	//
+	if((*(src+size)) != 0x08)
+	{
+		printf("not second tag\n");
+	}
+	size+=1;
+	
+	unsigned int array_size = Get_Int(src+size,4);
+	printf("second tag array length is %u\n"
+			,array_size);
+	size+=4;
+
+	//analy array
+	for(int i=0;i<array_size;i++)
+	{
+		unsigned int name_size = Get_Int(src+size,2);
+		size+=2;
+
+		char tmp_name[1024]={0};
+		memcpy(tmp_name,src+size,name_size);
+		size+=name_size;
+		//printf("\n \t name is %s ",tmp_name);
+
+		int tmp_size = 0;
+		switch((*(src+size)))
+		{
+		case 0:
+			tmp_size = 8;break;
+		case 1:
+			tmp_size = 1;break;
+		case 2:
+			tmp_size = -1;break;
+		case 3:
+			tmp_size = 2; break;
+		case 'C':
+			tmp_size = -2;break;
+		default:
+			printf("tag class is %d\n",(*(src+size)));
+			break;
+		}
+		int tmp_class=(*(src+size));
+		size++;
+
+		if(tmp_size == 0)
+		{
+			printf("tag size is %d\n",tmp_size);
+			//return -1;
+			continue;
+		}
+
+		if(tmp_size > 0)
+		{
+			double tmp_value = 0.0;
+			if(tmp_class == 0)
+			{
+				tmp_value = char2double(src+size,tmp_size);
+			}
+			else
+			{
+				tmp_value = Get_Int(src+size,tmp_size);
+			}
+			printf("%s : %lf\n",tmp_name,tmp_value);
+			size+=tmp_size;
+		}
+		else if(tmp_size == -1)
+		{
+			unsigned int t_size = Get_Int(src+size,2);
+			size+=2;
+
+			char tmp_value[1024]={0};
+			memcpy(tmp_value,src+size,t_size);
+			printf("%s : %s\n",tmp_name,tmp_value);
+			size+=t_size;
+		}
+		else if(tmp_size == -2)
+		{
+			int t_size = Get_Int(src+size,4);
+			size+=4;
+
+			char tmp_value[1024]={0};
+			memcpy(tmp_value,src+size,t_size);
+			printf("%s : %s\n",tmp_name,tmp_value);
+			size+=tmp_size;
+		}
+	}
+
+	size+=3;	//00 00 09 array final tag
+
+	return size;
+}
+
+
+int FLV_Demux::analy_taghead(unsigned char* src,int src_size)
+{
+	int size = 0;
+	unsigned int tmp=0;
+	
+	if(src_size <11)
+	{
+		return -1;
+	}
+
+	char tag_name[20]={0};
+	if(*(src+size) == 0x12)
+	{
+		sprintf(tag_name,"%s","script");
+	}
+	else if(*(src+size) == 0x08)
+	{
+		sprintf(tag_name,"%s","audio");
+	}
+	else if(*(src+size) == 0x09)
+	{
+		sprintf(tag_name,"%s","video");
+	}
+	size++;	//0x12,0x08,0x09的标记
+
+	m_TagDataLength = Get_Int(src+size,3);
+	printf("%s header length is %u\n"
+			,tag_name,m_TagDataLength);
+	
+	size+=3;
+
+	unsigned int time_stamp = Get_Int_Reverse(src+size,4);
+	printf("%s timestamp is %u\n",tag_name,time_stamp);
+	size+=4;
+
+	unsigned int tmp_id =  Get_Int(src+size,3);
+	printf("%s stream id is %u\n",tag_name,tmp_id);
+	
+	size+=3;
+
+
 	return size;
 }
 

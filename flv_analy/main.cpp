@@ -28,7 +28,7 @@ int main(int argc, const char * argv[])
 	if(flv_demux)
 	{
 		flv_demux->init(argv[1]);
-		Sleep(6000);
+		Sleep(3*10000);
 		delete flv_demux;
 	}
 	
