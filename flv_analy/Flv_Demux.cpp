@@ -187,7 +187,7 @@ int FLV_Demux::start_recieve()
 		{
 			if(b_stop)
 			{
-				break;
+				goto START_RECIEVE_END;
 			}
 			
 			int analypos = 0;
@@ -205,7 +205,7 @@ int FLV_Demux::start_recieve()
 				if(CheckFLV(m_Content) != 0)
 				{
 					log_to_file(FLOG_NORMAL,"FLV_Demux::start_recieve %s is not flv file",m_FileName);
-					goto START_ANALY_END;
+					goto START_RECIEVE_END;
 				}
 
 					
@@ -237,7 +237,8 @@ int FLV_Demux::start_recieve()
 			{
 				if(b_stop)
 				{
-					goto START_ANALY_END;
+					goto START_RECIEVE_END;
+					
 				}
 				printf("pre tag length is %u\n"
 						,Get_Int(m_Content+analypos,4));
@@ -295,7 +296,7 @@ int FLV_Demux::start_recieve()
 				{
 					printf("no such tag,%0x\n",*(m_Content+analypos));
 					ret = -1;
-					goto START_ANALY_END;
+					goto START_RECIEVE_END;
 				}
 			}
 			
@@ -314,12 +315,31 @@ int FLV_Demux::start_recieve()
 				}
 				readpos = readsize - analypos;
 			}
+			else if(analypos == readsize)
+			{
+				readpos = 0;
+			}
+			else
+			{
+				printf("read over,%d > %d\n",analypos,readsize);
+			}
+			
+			if(readpos > READ_BUFFERSIZE)
+			{
+				printf("single tag length > %d,it should be created more\n",READ_BUFFERSIZE);
+				ret=-1;
+				goto START_RECIEVE_END;
+			}
 
 		}
 		
 	}
+	else
+	{
+		printf("open %s failed",m_FileName);
+	}
 
-START_ANALY_END:
+START_RECIEVE_END:
 
 	if(fp)
 	{
@@ -357,12 +377,92 @@ int FLV_Demux::analy_videotag(unsigned char* src,int src_size)
 
 int FLV_Demux::analy_videoinfo(unsigned char* src)
 {
+	char log_info[1024]={0};
+	int size = 0;
+
 	unsigned int tmp = Get_Bits(src,0xF0);
 	printf("video key frame is %d\n",tmp/16);
+	
+	switch(tmp/16)
+	{
+	case 1:
+		sprintf(log_info+strlen(log_info),"%s","key frame : ");
+		break;
+	case 2:
+		sprintf(log_info+strlen(log_info),"%s","inter frame : ");
+		break;
+	case 3:
+		sprintf(log_info+strlen(log_info),"%s","disposable frame : ");
+		break;
+	case 4:
+		sprintf(log_info+strlen(log_info),"%s","generated key frame : ");
+		break;
+	case 5:
+		sprintf(log_info+strlen(log_info),"%s","video inf/command frame : ");
+		break;
 
-	tmp =  Get_Bits(src,0x0F);
-	printf("video encode id is %d\n",tmp);
+	default:
+		log_to_file(FLOG_NORMAL,"video class is not defined %d",tmp/16);
+		return -1;
+	}
+	//log_to_file(FLOG_NORMAL,"video key frame is %d",tmp/16);
 
+
+	unsigned int code_id =  Get_Bits(src,0x0F);
+	printf("video encode id is %d\n",code_id);
+
+	switch(code_id)
+	{
+	
+	case 2:
+		sprintf(log_info+strlen(log_info),"%s"," Sorenson H.263 : ");
+		break;
+	case 3:
+		sprintf(log_info+strlen(log_info),"%s"," Screen video : ");
+		break;
+	case 4:
+		sprintf(log_info+strlen(log_info),"%s"," On2 VP6 : ");
+		break;
+	case 5:
+		sprintf(log_info+strlen(log_info),"%s"," On2 VP6 with alpha channel : ");
+		break;
+	case 6:
+		sprintf(log_info+strlen(log_info),"%s"," Screen video version 2 ");
+		break;
+	case 7:
+		sprintf(log_info+strlen(log_info),"%s"," AVC : ");
+		break;
+
+	default:
+		log_to_file(FLOG_NORMAL,"video code_id is not defined %d",code_id);
+		return -1;
+	}
+
+	if(code_id == 7)
+	{
+		//AVC
+		size ++;
+		unsigned int AVC_PacketType = Get_Int(src+size,1);
+		switch(AVC_PacketType)
+		{
+		case 0:
+			sprintf(log_info+strlen(log_info),"%s"," AVC sequence header : ");
+			break;
+		case 1:
+			sprintf(log_info+strlen(log_info),"%s"," AVC NALU : ");
+			break;
+		case 2:
+			sprintf(log_info+strlen(log_info),"%s"," AVC end of sequence : ");
+			break;
+		default:
+			log_to_file(FLOG_ERR,"AVC_PacketType(%d) isnot defined ",AVC_PacketType);
+			return -1;
+		}
+		size++;
+		//time offset
+
+	}
+	log_to_file(FLOG_NORMAL,"%s",log_info);
 	return 0;
 }
 
