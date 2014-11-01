@@ -11,8 +11,10 @@
 #include "Flv_Demux.h"
 #include <Windows.h>
 
+
 int main(int argc, const char * argv[])
 {
+	
 	set_log_filename("flv_demux");
 	set_log_level(FLOG_NORMAL);
 	log_to_file(FLOG_NORMAL,"flv demux version v1.0.0 d20141007_1621");
@@ -28,7 +30,7 @@ int main(int argc, const char * argv[])
 	if(flv_demux)
 	{
 		flv_demux->init(argv[1]);
-		Sleep(3*10000);
+		Sleep(6*10000);
 		delete flv_demux;
 	}
 	

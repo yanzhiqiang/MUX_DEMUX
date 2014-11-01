@@ -5,6 +5,7 @@
 #include "Get_DTool.h"
 
 class Simple_Queue;
+class VA_Recieve;
 
 class FLV_Demux
 {
@@ -21,17 +22,17 @@ public:
 	*/
 	int init(const char* filename);
 	int receive_data();
-	int decoder_data();
+	
 private:
 	char* m_FileName;
 	unsigned char* m_Content;
 	bool m_BFirst;
+	bool b_Rec;
 
 	//private 
 	int setinit_params();
 	int start_recieve();
 
-	int analy_flv();
 	int analy_flvhead(unsigned char* src);
 	
 	int analy_scripttag(unsigned char* src,int size);
@@ -46,9 +47,8 @@ private:
 
 	//thread variable
 	HANDLE Rec_Thread;
-	HANDLE Dec_Thread;
-	bool	b_Rec;
-	bool	b_Dec;
+	int		m_Rec;
+	
 
 	// all stop 
 	bool	b_stop;
@@ -60,6 +60,8 @@ private:
 	struct Audio_Frame m_AudioFrame;
 
 	int m_TagDataLength;
+
+	VA_Recieve* m_Reciever;
 
 };
 

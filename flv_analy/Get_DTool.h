@@ -1,6 +1,8 @@
 #ifndef __GET_DTOOL_H_
 #define __GET_DTOOL_H_
 
+
+
 struct Video_Frame
 {
 	int size;

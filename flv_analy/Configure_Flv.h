@@ -1,8 +1,19 @@
 #ifndef __CONFIGURE_FLV_H_
 #define __CONFIGURE_FLV_H_
 
-#define __WINDOWS_VERSION_
 
+//定义接收模式是在线还是离线。
+#define LIVE_MODE		0
+#define OFFLINE_MODE	1
 
+//flv_demux define变量
+#define VIDEO_NUM	25*2
+#define AUDIO_NUM	50*2
+#define READ_BUFFERSIZE	1024*1024
+#define SUM_NUM		6
+
+#define STATE_STOP 0
+#define STATE_RUNNING 1
+#define STATE_OVER 2
 
 #endif
