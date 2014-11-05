@@ -23,4 +23,6 @@ double char2double(unsigned char * buf,unsigned int size);
 
 unsigned int Get_Bits(unsigned char* src,unsigned int bits);
 
+int reverse_str(char* src,int src_len);
+
 #endif

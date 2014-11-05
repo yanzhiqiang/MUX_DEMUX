@@ -5,7 +5,8 @@
 #include "Get_DTool.h"
 
 class Simple_Queue;
-class VA_Recieve;
+class VA_Receive;
+class Safe_Memory;
 
 class FLV_Demux
 {
@@ -23,6 +24,23 @@ public:
 	int init(const char* filename);
 	int receive_data();
 	
+	/*
+		返回是否接收完成
+		1	接收完成
+		0	未完成
+	*/
+	int check_recover();
+
+	/*
+		获取脚本，视频和音频
+	*/
+	void*	pop_videoitem();
+	int		get_scriptitem(void* dst,int* dst_len);
+	void*	pop_audioitem();
+	int		get_videocount();
+	int		get_audiocount();
+	int		get_flvhead(void* dst,int* dst_len);
+
 private:
 	char* m_FileName;
 	unsigned char* m_Content;
@@ -61,8 +79,12 @@ private:
 
 	int m_TagDataLength;
 
-	VA_Recieve* m_Reciever;
+	VA_Receive* m_Reciever;
 
+	Safe_Memory* m_ScriptContent;
+	int		m_scriptnum;
+
+	Safe_Memory* m_FlvheadContent;
 };
 
 #endif

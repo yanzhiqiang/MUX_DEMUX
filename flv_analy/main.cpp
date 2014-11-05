@@ -9,6 +9,7 @@
 #include <iostream>
 #include "log.h"
 #include "Flv_Demux.h"
+#include "Cut_Flv.h"
 #include <Windows.h>
 
 
@@ -27,10 +28,14 @@ int main(int argc, const char * argv[])
 	}
 
 	FLV_Demux* flv_demux =  new FLV_Demux();
+	CUT_Flv*   t_cutflv = new CUT_Flv();
 	if(flv_demux)
 	{
+		t_cutflv->set_flvdemux(flv_demux);
 		flv_demux->init(argv[1]);
-		Sleep(6*10000);
+
+		//两个问题
+		t_cutflv->cut_flv(0,0,"test.flv");
 		delete flv_demux;
 	}
 	

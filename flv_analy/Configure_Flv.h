@@ -7,8 +7,8 @@
 #define OFFLINE_MODE	1
 
 //flv_demux define±‰¡ø
-#define VIDEO_NUM	25*2
-#define AUDIO_NUM	50*2
+#define VIDEO_NUM	25
+#define AUDIO_NUM	50
 #define READ_BUFFERSIZE	1024*1024
 #define SUM_NUM		6
 

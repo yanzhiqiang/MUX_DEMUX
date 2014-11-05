@@ -1,17 +1,17 @@
-#include "VA_Recieve.h"
+#include "VA_Receive.h"
 #include "Configure_Flv.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-VA_Recieve::VA_Recieve()
+VA_Receive::VA_Receive()
 {
 	m_SrcAddr = NULL;
 	m_Mode = OFFLINE_MODE;
 	m_Fp=NULL;
 }
 
-VA_Recieve::~VA_Recieve()
+VA_Receive::~VA_Receive()
 {
 	if(m_SrcAddr)
 	{
@@ -25,7 +25,7 @@ VA_Recieve::~VA_Recieve()
 	}
 }
 
-int VA_Recieve::set_init(const char* src_addr,int mode)
+int VA_Receive::set_init(const char* src_addr,int mode)
 {
 	m_Mode=mode;
 	m_SrcAddr = (char*)calloc(sizeof(char),strlen(src_addr)+1);
@@ -33,7 +33,7 @@ int VA_Recieve::set_init(const char* src_addr,int mode)
 	return 0;
 }
 
-int VA_Recieve::rec_data(int src_len,unsigned char* src_content,bool* over_flag)
+int VA_Receive::rec_data(int src_len,unsigned char* src_content,bool* over_flag)
 {
 	//check 
 	int ret_size = 0;

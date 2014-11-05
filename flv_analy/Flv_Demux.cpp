@@ -6,11 +6,10 @@
 #include "Judge_Type.h"
 #include "Simple_Queue.h"
 #include "Get_DTool.h"
+#include "Configure_flv.h"
+#include "VA_Receive.h"
+#include "Safe_Memory.h"
 
-#define VIDEO_NUM	25*2
-#define AUDIO_NUM	50*2
-#define READ_BUFFERSIZE	1024*1024
-#define SUM_NUM		6
 
 
 DWORD	WINAPI	Rec_Func(LPVOID	lpParam)
@@ -23,17 +22,6 @@ DWORD	WINAPI	Rec_Func(LPVOID	lpParam)
 	return 0;
 }
 
-DWORD	WINAPI	Dec_Func(LPVOID	lpParam)
-{
-	FLV_Demux* t_p = (FLV_Demux*)lpParam;
-	if(t_p)
-	{
-		t_p->decoder_data();
-	}
-	return 0;
-}
-
-
 FLV_Demux::FLV_Demux()
 {
 	setinit_params();
@@ -43,23 +31,13 @@ FLV_Demux::FLV_Demux()
 FLV_Demux::~FLV_Demux()
 {
 	b_stop = true;
-	if(b_Dec || b_Rec)
+	if(m_Rec == STATE_RUNNING)
 	{
 		Sleep(1000);
 	}
 
-	if(b_Dec)
-	{
-		printf("Dec Thread is not over,so killed\n");
-		TerminateThread(Dec_Thread,0);
-	}
-	else
-	{
-		CloseHandle(Dec_Thread); 
-	}
-	Dec_Thread=NULL;
-
-	if(b_Rec)
+	
+	if(m_Rec == STATE_RUNNING)
 	{
 		printf("Rec Thread is not over,so killed\n");
 		TerminateThread(Rec_Thread,0);
@@ -92,6 +70,17 @@ FLV_Demux::~FLV_Demux()
 		delete m_AudioQueue;
 		m_AudioQueue = NULL;
 	}
+
+	if(m_Reciever)
+	{
+		delete m_Reciever;
+		m_Reciever=NULL;
+	}
+	if(m_ScriptContent)
+	{
+		delete m_ScriptContent;
+		m_ScriptContent=NULL;
+	}
 }
 
 int FLV_Demux::setinit_params()
@@ -100,22 +89,26 @@ int FLV_Demux::setinit_params()
 	m_Content=NULL;
 	
 	m_BFirst=true;
-	b_Rec=false;
-	b_Dec=false;
+	m_Rec=STATE_STOP;
 	b_stop = false;
 	m_VideoQueue = NULL;
 	m_AudioQueue = NULL;
 	m_TagDataLength=0;
-	
+	m_Reciever=NULL;
+	m_ScriptContent=NULL;
+	m_scriptnum=0;
+	m_FlvheadContent=NULL;
+
 	return 0;
 }
 
 int FLV_Demux::init(const char* filename)
 {
 	int ret = 0;
+	int i=0;
 	if(filename == NULL)
 	{
-		log_to_file(FLOG_ERR,"FLV_Demux::file name is NULL");
+		log_to_file(FLOG_ERR,"FLV_Demux::file name(%s) is NULL",filename);
 		ret = -1;
 		goto Init_End;
 	}
@@ -123,10 +116,19 @@ int FLV_Demux::init(const char* filename)
 	setinit_params();
 
 	//set file name
-	m_FileName = (char*)calloc(strlen(filename)+1,sizeof(char));
-	memcpy(m_FileName,filename,strlen(filename));
-
 	
+	if(!m_Reciever)
+	{
+		m_Reciever = new VA_Receive();
+		if(!m_Reciever)
+		{
+			printf("%s %s %d create reciever failed"
+					,__FILE__,__FUNCTION__,__LINE__);
+			ret = -1;
+			goto Init_End; 
+		}
+	}
+	m_Reciever->set_init(filename,OFFLINE_MODE);
 	//alloca m_Content;
 	m_Content = (unsigned char*) calloc(READ_BUFFERSIZE,sizeof(unsigned char));
 	if(!m_Content)
@@ -137,22 +139,31 @@ int FLV_Demux::init(const char* filename)
 	}
 	
 	m_VideoQueue = new Simple_Queue();
-	m_VideoQueue->init(VIDEO_NUM,sizeof(m_VideoFrame));
+	ret = m_VideoQueue->init(VIDEO_NUM,sizeof(struct Video_Frame));
+	if(ret != 0)
+	{
+		printf("FLV_Demux::m_VideoQueue init retutn %d\n",ret);
+	}
 	m_AudioQueue = new Simple_Queue();
-	m_AudioQueue->init(AUDIO_NUM,sizeof(m_AudioFrame));
-
+	ret = m_AudioQueue->init(AUDIO_NUM,sizeof(struct Audio_Frame));
+	if(ret != 0)
+	{
+		printf("FLV_Demux::m_VideoQueue init retutn %d\n",ret);
+	}
 	
-	log_to_file(FLOG_NORMAL,"FLV_Demux::file name is %s",m_FileName);
-	printf("FLV_Demux::file name is %s\n",m_FileName);
+	printf("v_size is %d,a_size is %d",sizeof(struct Video_Frame),sizeof(m_AudioFrame));
+	m_ScriptContent = new Safe_Memory();
+	m_FlvheadContent = new Safe_Memory();
+
+	log_to_file(FLOG_NORMAL,"FLV_Demux::file name is %s",filename);
+	printf("FLV_Demux::file name is %s\n",filename);
 
 	//start two thread ,one for receive,one for decoder
 	Rec_Thread = CreateThread(NULL,0,Rec_Func,(LPVOID)this,0,NULL); 
 
-	Dec_Thread = CreateThread(NULL,0,Dec_Func,(LPVOID)this,0,NULL); 
-
-	for(int i=0;i<3;i++)
+	for(i=0;i<3;i++)
 	{
-		if(b_Dec && b_Rec)
+		if(m_Rec != STATE_STOP )
 		{
 			goto Init_End;
 		}
@@ -160,6 +171,13 @@ int FLV_Demux::init(const char* filename)
 		{
 			Sleep(1000);
 		}
+	}
+
+	if(i>=3)
+	{
+		log_to_file(FLOG_ERR,"have thread not start");
+		printf("have thread not start\n");
+		ret = -1;
 	}
 
 Init_End:
@@ -170,182 +188,267 @@ Init_End:
 int FLV_Demux::start_recieve()
 {
 	int ret = 0;
-
-	//open file
-	FILE* fp =  NULL;
-	fp = fopen(m_FileName,"rb");
+	bool b_overflag = false;
+	m_Rec = STATE_RUNNING;
+		
+	int readsize = 0;
+	int readpos=0;
 	
-	if(fp)
-	{	
-		printf("start_recieve fopen %s success\n"
-						,m_FileName);
-		
-		
-		int readsize = 0;
-		int readpos=0;
-		while(!feof(fp))
+	
+	while(!b_overflag)
+	{
+		if(b_stop)
 		{
-			if(b_stop)
-			{
-				goto START_RECIEVE_END;
-			}
+			goto START_RECIEVE_END;
+		}
 			
-			int analypos = 0;
+		int analypos = 0;
 
-			readsize = readpos + fread(m_Content+readpos,sizeof(unsigned char),READ_BUFFERSIZE-readpos
-						,fp);
-
-			if(m_BFirst)
+		int reciever_size = 0;
+		for(int k=0;k<3;k++)
+		{
+			reciever_size = m_Reciever->rec_data(READ_BUFFERSIZE-readpos,m_Content+readpos,&b_overflag);
+			if(reciever_size > 0)
 			{
-				if(readsize <3)
-				{
-					printf("FLV_Demux::start_recieve readsize(%d) < 3\n",readsize);
-					continue;
-				}
-				if(CheckFLV(m_Content) != 0)
-				{
-					log_to_file(FLOG_NORMAL,"FLV_Demux::start_recieve %s is not flv file",m_FileName);
-					goto START_RECIEVE_END;
-				}
-
-					
-				m_BFirst = false;
-
-				log_to_file(FLOG_NORMAL,"FLV_Demux::start_recieve %s is flv file",m_FileName);
-				printf("FLV_Demux::start_recieve %s is flv file\n",m_FileName);
-
-				//add analy header
-				if(readsize <9)
-				{
-					printf("FLV_Demux::start_recieve readsize(%d) < 9,can't analy flvheander\n",readsize);
-					continue;
-				}
-				analypos += analy_flvhead(m_Content);
-				
+				break;
 			}
-
-			if(readsize < analypos + 5)
+		}
+		if(reciever_size <= 0)
+		{
+			printf("%s %s %d read size(%d) <= 0"
+					,__FILE__,__FUNCTION__,__LINE__,reciever_size);
+			break;
+		}
+		printf("reciever_size is %d\n",reciever_size);
+		readsize = readpos + reciever_size;
+			
+		log_to_file(FLOG_NORMAL,"read file readpos=%d,readsize=%d analypos=%d rec_size =%d start"
+						,readpos,readsize,analypos,reciever_size);
+		if(m_BFirst)
+		{
+			if(readsize <3)
 			{
-				printf("FLV_Demux::start_recieve readsize(%d) <analypos(%d) + 5,can't analy flvtag\n"
-					,readsize,analypos);
-					
+				printf("FLV_Demux::start_recieve readsize(%d) < 3\n",readsize);
 				continue;
 			}
 			
-			//pre tag length
-			while(analypos < readsize)
+			if(CheckFLV(m_Content) != 0)
 			{
-				if(b_stop)
-				{
-					goto START_RECIEVE_END;
-					
-				}
-				printf("pre tag length is %u\n"
-						,Get_Int(m_Content+analypos,4));
-				analypos+=4;
-				
-				if(analypos >= readsize)
-				{
-					printf("analy normal,%d %d\n"
-						,analypos,readsize);
-					break;
-				}
-				if(*(m_Content+analypos) == 0x12)
-				{
-					//analy script
-					int ret = analy_scripttag(m_Content+analypos,readsize-analypos);
-					if(ret > 0)
-					{
-						analypos +=ret;
-						
-					}
-					else
-					{
-						break;
-					}
-				}
-				else if(*(m_Content+analypos) == 0x08)
-				{
-					//audio
-					int ret = analy_audiotag(m_Content+analypos,readsize-analypos);
-					if(ret > 0)
-					{
-						analypos+=ret;
-						
-					}
-					else
-					{
-						break;
-					}
-				}
-				else if(*(m_Content+analypos) == 0x09)
-				{
-					//video
-					int ret = analy_videotag(m_Content+analypos,readsize-analypos);
-					if(ret > 0)
-					{
-						analypos+=ret;
-						
-					}
-					else
-					{
-						break;
-					}
-				}
-				else
-				{
-					printf("no such tag,%0x\n",*(m_Content+analypos));
-					ret = -1;
-					goto START_RECIEVE_END;
-				}
-			}
-			
-			analypos-=4;	//analypos break出来的时候要还原。
-
-			printf("analypos=%d,readsize=%d\n"
-					,analypos,readsize);
-			
-			//copy
-			if(analypos < readsize)
-			{
-				//同一片内存区域，所以尽量自己保证拷贝正确。
-				for(int i=0;i<readsize-analypos;i++)
-				{
-					m_Content[i]=m_Content[analypos+i];
-				}
-				readpos = readsize - analypos;
-			}
-			else if(analypos == readsize)
-			{
-				readpos = 0;
-			}
-			else
-			{
-				printf("read over,%d > %d\n",analypos,readsize);
-			}
-			
-			if(readpos > READ_BUFFERSIZE)
-			{
-				printf("single tag length > %d,it should be created more\n",READ_BUFFERSIZE);
-				ret=-1;
+				log_to_file(FLOG_NORMAL,"FLV_Demux::start_recieve %s is not flv file",m_FileName);
 				goto START_RECIEVE_END;
 			}
 
+					
+			m_BFirst = false;
+
+			log_to_file(FLOG_NORMAL,"FLV_Demux::start_recieve %s is flv file",m_FileName);
+			printf("FLV_Demux::start_recieve %s is flv file\n",m_FileName);
+
+				//add analy header
+			if(readsize <9)
+			{
+				printf("FLV_Demux::start_recieve readsize(%d) < 9,can't analy flvheander\n",readsize);
+				continue;
+			}
+			analypos += analy_flvhead(m_Content);
+			m_FlvheadContent->memcpy_push(m_Content,analypos);
+							
+		}
+
+		if(readsize < analypos + 5)
+		{
+			printf("FLV_Demux::start_recieve readsize(%d) <analypos(%d) + 5,can't analy flvtag\n"
+				,readsize,analypos);
+				
+			continue;
 		}
 		
-	}
-	else
-	{
-		printf("open %s failed",m_FileName);
-	}
+		analypos+=4;
+		printf("analypos is [%d]\n",analypos);
+		//pre tag length
+		while(analypos < readsize)
+		{
+			if(b_stop)
+			{
+				goto START_RECIEVE_END;		
+			}
+			//printf("pre tag length is %u\n"
+			//		,Get_Int(m_Content+analypos,4));
+			
+			
+				
+			if(analypos >= readsize)
+			{
+				printf("analy normal,%d %d\n"
+					,analypos,readsize);
+				log_to_file(FLOG_NORMAL,"analy normal,%d %d\n"
+						,analypos,readsize);
+				break;
+			}
+			
+			if(*(m_Content+analypos) == 0x12)
+			{
+				//analy script
+				int ret = analy_scripttag(m_Content+analypos,readsize-analypos);
+				if(ret > 0)
+				{
+					m_scriptnum++;
+					if(m_scriptnum <=1)
+					{
+						//在这里保存脚本数据
+						/*int k=0;
+						for(k=0;k<3;k++)
+						{*/
+							if(0 != m_ScriptContent->memcpy_push(m_Content+analypos,ret))
+							{
+								Sleep(20);
+								continue;
+							}
+						/*	else
+							{
+								break;
+							}
+						}
+						if(k>=3)
+						{
+							printf("%s %s %d push script item failed"
+									,__FILE__,__FUNCTION__,__LINE__);
+						}*/
+					}
+					analypos +=ret;
+					analypos+=4;
+				}
+				else
+				{
+					break;
+				}
+			}
+			else if(*(m_Content+analypos) == 0x08)
+			{
+				//audio
+				int ret = analy_audiotag(m_Content+analypos,readsize-analypos);
+				if(ret > 0)
+				{
+					//保存音频数据
+					m_AudioFrame.size = ret;
+					m_AudioFrame.a_Buffer = (unsigned char*)calloc(m_AudioFrame.size,sizeof(unsigned char));
+					memcpy(m_AudioFrame.a_Buffer,m_Content+analypos,m_AudioFrame.size);
+					//printf("audio size is %d,buffer=%x\n",m_AudioFrame.size,m_AudioFrame.a_Buffer);
+					/*int k=0;
+					for(k=0;k<3;k++)
+					{*/
+						if(0 != m_AudioQueue->PushItem((void*)&m_AudioFrame))
+						{
+							//if(m_mode == OFFLINE_MODE)
+							Sleep(20);
+							continue;
+						}
+						/*else
+						{
+							break;
+						}*/
+					/*}
+					if(k>=3)
+					{
+						printf("%s %s %d push audio item failed,count:[%d]\n"
+								,__FILE__,__FUNCTION__,__LINE__,m_AudioQueue->GetCount());
+					}*/
+					
 
+					analypos+=ret;	
+					analypos+=4;
+									
+				}
+				else
+				{
+					break;
+				}
+			}
+			else if(*(m_Content+analypos) == 0x09)
+			{
+				//video
+				int ret = analy_videotag(m_Content+analypos,readsize-analypos);
+				if(ret > 0)
+				{
+					//视频
+					m_VideoFrame.size = ret;
+					m_VideoFrame.v_Buffer = (unsigned char*)calloc(m_VideoFrame.size,sizeof(unsigned char));
+					memcpy(m_VideoFrame.v_Buffer,m_Content+analypos,m_VideoFrame.size);
+					/*int k=0;
+					for(k=0;k<3;k++)
+					{*/
+						if(0 != m_VideoQueue->PushItem(&m_VideoFrame))
+						{
+							Sleep(20);
+							continue;
+						}
+						/*else
+						{
+							break;
+						}*/
+					/*}
+					if(k>=3)
+					{
+						printf("%s %s %d push audio item failed,count:[%d]"
+								,__FILE__,__FUNCTION__,__LINE__,m_VideoQueue->GetCount());
+					}*/
+
+					analypos+=ret;
+					analypos+=4;
+					
+				}
+				else
+				{
+					break;
+				}
+			}
+			else
+			{
+				printf("no such tag,%0x\n",*(m_Content+analypos));
+				ret = -1;
+				goto START_RECIEVE_END;
+			}
+		}
+			
+		analypos-=4;	//analypos break出来的时候要还原。
+
+		printf("analypos=%d,readsize=%d\n"
+				,analypos,readsize);
+			
+		//copy
+		if(analypos < readsize)
+		{
+			//同一片内存区域，所以尽量自己保证拷贝正确。
+			for(int i=0;i<readsize-analypos;i++)
+			{
+				m_Content[i]=m_Content[analypos+i];
+			}
+			readpos = readsize - analypos;
+		}
+		else if(analypos == readsize)
+		{
+			readpos = 0;
+		}
+		else
+		{
+			printf("read over,%d > %d\n",analypos,readsize);
+			log_to_file(FLOG_ERR,"read over,%d > %d\n",analypos,readsize);
+		}
+			
+		if(readpos > READ_BUFFERSIZE)
+		{
+			printf("single tag length > %d,it should be created more\n",READ_BUFFERSIZE);
+			log_to_file(FLOG_ERR,"single tag length > %d,it should be created more\n",READ_BUFFERSIZE);
+			ret=-1;
+			goto START_RECIEVE_END;
+		}
+			log_to_file(FLOG_NORMAL,"read file readpos=%d,readsize=%d analypos=%d end"
+					,readpos,readsize,analypos);
+	}
+		
+	
 START_RECIEVE_END:
-
-	if(fp)
-	{
-		fclose(fp);
-		fp=NULL;
-	}
+	m_Rec = STATE_OVER;
 	return ret;
 }
 
@@ -381,7 +484,7 @@ int FLV_Demux::analy_videoinfo(unsigned char* src)
 	int size = 0;
 
 	unsigned int tmp = Get_Bits(src,0xF0);
-	printf("video key frame is %d\n",tmp/16);
+	//printf("video key frame is %d\n",tmp/16);
 	
 	switch(tmp/16)
 	{
@@ -409,7 +512,7 @@ int FLV_Demux::analy_videoinfo(unsigned char* src)
 
 
 	unsigned int code_id =  Get_Bits(src,0x0F);
-	printf("video encode id is %d\n",code_id);
+	//printf("video encode id is %d\n",code_id);
 
 	switch(code_id)
 	{
@@ -495,16 +598,16 @@ int FLV_Demux::analy_audiotag(unsigned char* src,int src_size)
 int FLV_Demux::analy_audioinfo(unsigned char* src)
 {
 	unsigned int tmp = Get_Bits(src,0xF0);
-	printf("audio format is %u\n",tmp/16);
+	//printf("audio format is %u\n",tmp/16);
 
 	tmp = Get_Bits(src,0x0C);
-	printf("audio samplerate is %u\n",tmp/4);
+	//printf("audio samplerate is %u\n",tmp/4);
 
 	tmp = Get_Bits(src,0x02);
-	printf("audio bits is %u\n",tmp/2);
+	//printf("audio bits is %u\n",tmp/2);
 
 	tmp =  Get_Bits(src,0x01);
-	printf("audio class is %u\n",tmp);
+	//printf("audio class is %u\n",tmp);
 
 	return 0;
 }
@@ -575,8 +678,8 @@ int FLV_Demux::analy_scriptdata(unsigned char* src,int src_size)
 	size+=1;
 	
 	unsigned int array_size = Get_Int(src+size,4);
-	printf("second tag array length is %u\n"
-			,array_size);
+	//printf("second tag array length is %u\n"
+	//		,array_size);
 	size+=4;
 
 	//analy array
@@ -629,6 +732,7 @@ int FLV_Demux::analy_scriptdata(unsigned char* src,int src_size)
 				tmp_value = Get_Int(src+size,tmp_size);
 			}
 			printf("%s : %lf\n",tmp_name,tmp_value);
+			log_to_file(FLOG_NORMAL,"%s : %lf\n",tmp_name,tmp_value);
 			size+=tmp_size;
 		}
 		else if(tmp_size == -1)
@@ -639,6 +743,7 @@ int FLV_Demux::analy_scriptdata(unsigned char* src,int src_size)
 			char tmp_value[1024]={0};
 			memcpy(tmp_value,src+size,t_size);
 			printf("%s : %s\n",tmp_name,tmp_value);
+			log_to_file(FLOG_NORMAL,"%s : %s\n",tmp_name,tmp_value);
 			size+=t_size;
 		}
 		else if(tmp_size == -2)
@@ -649,6 +754,7 @@ int FLV_Demux::analy_scriptdata(unsigned char* src,int src_size)
 			char tmp_value[1024]={0};
 			memcpy(tmp_value,src+size,t_size);
 			printf("%s : %s\n",tmp_name,tmp_value);
+			log_to_file(FLOG_NORMAL,"%s : %s\n",tmp_name,tmp_value);
 			size+=tmp_size;
 		}
 	}
@@ -685,30 +791,31 @@ int FLV_Demux::analy_taghead(unsigned char* src,int src_size)
 	size++;	//0x12,0x08,0x09的标记
 
 	m_TagDataLength = Get_Int(src+size,3);
-	printf("%s header length is %u\n"
-			,tag_name,m_TagDataLength);
+	//printf("%s header length is %u\n"
+	//		,tag_name,m_TagDataLength);
 	
+	log_to_file(FLOG_DEBUG,"%s header length is %u\n",tag_name,m_TagDataLength);
+
 	size+=3;
 
-	unsigned int time_stamp = Get_Int_Reverse(src+size,4);
-	printf("%s timestamp is %u\n",tag_name,time_stamp);
-	size+=4;
+	//unsigned int time_stamp = Get_Int_Reverse(src+size,4);
+	
+	unsigned int time_stamp = Get_Int(src+size,3);
+	size +=3;
+	time_stamp += (*(src+size))*256*256*256;
+
+	size++;
+//	printf("%s timestamp is %u\n",tag_name,time_stamp);
+	log_to_file(FLOG_NORMAL,"%s timestamp is %u\n",tag_name,time_stamp);
 
 	unsigned int tmp_id =  Get_Int(src+size,3);
-	printf("%s stream id is %u\n",tag_name,tmp_id);
+//	printf("%s stream id is %u\n",tag_name,tmp_id);
 	
 	size+=3;
 
 
 	return size;
 }
-
-int FLV_Demux::analy_flv()
-{
-
-	return 0;
-}
-
 
 int FLV_Demux::analy_flvhead(unsigned char* src)
 {
@@ -746,37 +853,49 @@ int FLV_Demux::analy_flvhead(unsigned char* src)
 int FLV_Demux::receive_data()
 {
 	printf("receive data start\n");
-	b_Rec=true;
-
-	Sleep(3000);
+	
+	
 	start_recieve();
 
-	b_Rec=false;
 	printf("receive data end\n");
 	return 0;
 }
 
-int FLV_Demux::decoder_data()
+int FLV_Demux::check_recover()
 {
-	b_Dec=true;
-	printf("decoder data start\n");
-
-	Sleep(3000);
-
-	//处理线程，视频优先处理，没有视频处理音频
-	while(true)
+	if(m_Rec == STATE_OVER)
 	{
-		if(b_stop)
-		{
-			break;
-		}
-		
-		//analy tag
-
+		return 1;
 	}
-
-
-	printf("decoder data end\n");
-	b_Dec=false;
 	return 0;
+}
+
+void* FLV_Demux::pop_videoitem()
+{
+	return m_VideoQueue->PopItem();
+}
+
+void* FLV_Demux::pop_audioitem()
+{
+	return m_AudioQueue->PopItem();
+}
+
+int FLV_Demux::get_scriptitem(void* dst,int* dst_len)
+{
+	return m_ScriptContent->memcpy_front(dst,dst_len);
+}
+
+int FLV_Demux::get_videocount()
+{
+	return m_VideoQueue->GetCount();
+}
+
+int FLV_Demux::get_audiocount()
+{
+	return m_AudioQueue->GetCount();
+}
+
+int	FLV_Demux::get_flvhead(void* dst,int* dst_len)
+{
+	return m_FlvheadContent->memcpy_front(dst,dst_len);
 }

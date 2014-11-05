@@ -48,3 +48,19 @@ double char2double(unsigned char * buf,unsigned int size)
 	 scr = *(double *)buf_2;
 	 return scr;
 }
+
+int reverse_str(char* src,int src_len)
+{
+	int i=0;
+	int j=src_len-1;
+	char t;
+	while(i<j)
+	{
+		t=src[i];
+		src[i]=src[j];
+		src[j]=t;
+		i++;
+		j--;
+	}
+	return 0;
+}

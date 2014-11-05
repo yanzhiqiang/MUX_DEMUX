@@ -1,13 +1,13 @@
-#ifndef __VA_RECIEVE_H_
-#define __VA_RECIEVE_H_
+#ifndef __VA_RECEIVE_H_
+#define __VA_RECEIVE_H_
 
 #include <stdio.h>
 
-class VA_Recieve
+class VA_Receive
 {
 public:
-	VA_Recieve();
-	~VA_Recieve();
+	VA_Receive();
+	~VA_Receive();
 
 	int set_init(const char* src_addr,int mode);
 	/*

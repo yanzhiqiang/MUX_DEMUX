@@ -1,6 +1,7 @@
 #ifndef __SIMPLE_QUEUE_H_
 #define __SIMPLE_QUEUE_H_
 
+#include <Windows.h>
 
 class Simple_Queue
 {
@@ -11,11 +12,11 @@ public:
 	int init(int num,int single_size);
 	int PushItem(void* item);
 	void* PopItem();
+	int GetCount();
 
 private:
 	int initparam();
 
-	//HANDLE	m_mutex;
 	void**	m_itemlink;
 	int		m_wnum;
 	int		m_rnum;
@@ -23,6 +24,7 @@ private:
 	int		m_rpos;
 	int		m_num;
 	int		m_size;
+	CRITICAL_SECTION m_cslock;
 };
 
 #endif
