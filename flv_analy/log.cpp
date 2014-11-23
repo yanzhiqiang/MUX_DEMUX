@@ -41,9 +41,10 @@ int log_to_file(const int t_log_level,const char* format, ...)
 
 
 	char current_file_name[20]={0};
-	sprintf(current_file_name,"%s_log.txt",file_name);
+	sprintf_s(current_file_name,"%s_log.txt",file_name);
 
-	FILE* fp = fopen(current_file_name,"a");
+	FILE* fp = NULL;
+	fopen_s(&fp,current_file_name,"a");
 	if(fp)
 	{
 
@@ -61,13 +62,13 @@ int log_to_file(const int t_log_level,const char* format, ...)
 				char t_file_name[20]={0};
 				if(i!=0)
 				{
-					sprintf(s_file_name,"%s_log%d.txt",file_name,i);
+					sprintf_s(s_file_name,"%s_log%d.txt",file_name,i);
 				}
 				else
 				{
-					sprintf(s_file_name,"%s_log.txt",file_name);
+					sprintf_s(s_file_name,"%s_log.txt",file_name);
 				}
-				sprintf(t_file_name,"%s_log%d.txt",file_name,i+1);
+				sprintf_s(t_file_name,"%s_log%d.txt",file_name,i+1);
 				//if(access(s_file_name,F_OK)==0)
 				{
 					rename(s_file_name,t_file_name);
@@ -81,7 +82,10 @@ int log_to_file(const int t_log_level,const char* format, ...)
 		time_t cur_time = time(NULL);
 		char timestr[32];
 		memset(timestr,0,32);
-		sprintf(timestr,"%s : ",ctime(&cur_time));
+
+		//sprintf_s(timestr,"%s : ",ctime_s(&cur_time));
+		ctime_s(timestr,32,&cur_time);
+
 		timestr[24] = 0;
 
 		fprintf(fp, "%s: ", timestr);

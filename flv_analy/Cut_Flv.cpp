@@ -53,14 +53,18 @@ int CUT_Flv::cut_flv(int start_time,int end_time,char* file_name)
 	struct Video_Frame *t_VideoFrame=NULL;
 	struct Audio_Frame *t_AudioFrame=NULL;
 	//open file_bak
-	sprintf(t_filename,"%s",file_name);
-	fp = fopen(t_filename,"wb+");
-	//int pre_size = 0;//int 是四个字节
+	sprintf_s(t_filename,strlen(file_name)+1,"%s",file_name);
+	fopen_s(&fp,t_filename,"wb+");
+	
 	char pre_size[4]={0};
 	int pre_size_len = 4;
+
 	if(fp)
 	{
-		
+		unsigned int video_timestamp = TIMESTAMP_MAX;
+		unsigned int audio_timestamp = TIMESTAMP_MAX;
+		unsigned int base_timestamp = 0;
+		unsigned int video_lttimestamp = 0;
 		while(!m_flv->check_recover() || (m_flv->get_videocount() != 0) || (m_flv->get_audiocount() != 0))
 		{
 			if(!b_flvhead)
@@ -90,9 +94,9 @@ int CUT_Flv::cut_flv(int start_time,int end_time,char* file_name)
 				{
 					continue;
 				}
+				m_flv->analy_taghead((unsigned char*)m_scriptcontent,len_script,&base_timestamp);
+				printf("base timestamp is %u\n",base_timestamp);
 				fwrite(m_scriptcontent,sizeof(unsigned char),len_script,fp);
-				//pre_size = len_script;
-				//char* t_size = len_script
 				memcpy(pre_size,&len_script,pre_size_len);
 				reverse_str(pre_size,pre_size_len);
 				fwrite(pre_size,sizeof(int),1,fp);
@@ -100,40 +104,84 @@ int CUT_Flv::cut_flv(int start_time,int end_time,char* file_name)
 				b_script = true;
 			}
 
-			//t_VideoFrame=NULL;
-			//t_AudioFrame=NULL;
+			//修改一下，修改成取音频和视频的对应时间戳小的写入flv文件中。
+			//总体思路是：如果flv视频文件中存在视频，取视频，如果取成功了，获取时间戳。音频也是如此.
+			//改进，start_time是在基准时间上+start_time。基准时间是可以改变的。加个超时时间限制，当长时间来单一的tag。不在取值范围的要进行处理。
+
 			t_VideoFrame = (struct Video_Frame*)m_flv->pop_videoitem();
+			if(t_VideoFrame)
+			{
+				//m_flv->analy_taghead(t_VideoFrame->v_Buffer,t_VideoFrame->size,&video_timestamp);
+			}
+
+
 			t_AudioFrame = (struct Audio_Frame*)m_flv->pop_audioitem();
+			if(t_AudioFrame)
+			{
+				//printf("pop item size:[%d],buf_addr:[%x]\n",t_AudioFrame->size,t_AudioFrame->a_Buffer);
+				//m_flv->analy_taghead(t_AudioFrame->a_Buffer,t_AudioFrame->size,&audio_timestamp);
+			}
+
+			
+			//如果视频存在
+			/*if(t_VideoFrame)
+			{
+				printf("Cut_Flv video timestamp is %u\n",video_timestamp);
+				if(video_timestamp > video_lttimestamp + TIMESTAMP_ROLLBACK)
+				{
+					start_time += video_timestamp;
+					end_time += video_timestamp;
+					printf("timestamp rollback [%u] to [%u] \n ",video_lttimestamp,video_timestamp);
+				}
+			}*/
+
+			//设置上次时间戳
+			video_lttimestamp=video_timestamp;
+
 			//先处理音频
 			if(t_AudioFrame)
 			{
-				fwrite(t_AudioFrame->a_Buffer,sizeof(unsigned char),t_AudioFrame->size,fp);
-				
-				memcpy(pre_size,&t_AudioFrame->size,pre_size_len);
-				reverse_str(pre_size,pre_size_len);
+				/*if(audio_timestamp >= start_time && audio_timestamp < end_time)
+				{
+					fwrite(t_AudioFrame->a_Buffer,sizeof(unsigned char),t_AudioFrame->size,fp);
+
+					memcpy(pre_size,&t_AudioFrame->size,pre_size_len);
+					reverse_str(pre_size,pre_size_len);
+					
+					fwrite(pre_size,sizeof(int),1,fp);
+
+				}*/
 				free(t_AudioFrame->a_Buffer);
-				fwrite(pre_size,sizeof(int),1,fp);
+
 			}
 			if(t_VideoFrame)
 			{
-				fwrite(t_VideoFrame->v_Buffer,sizeof(unsigned char),t_VideoFrame->size,fp);
-				
-				memcpy(pre_size,&t_VideoFrame->size,pre_size_len);
-				reverse_str(pre_size,pre_size_len);
+				/*if(video_timestamp >= start_time && video_timestamp < end_time)
+				{
+					fwrite(t_VideoFrame->v_Buffer,sizeof(unsigned char),t_VideoFrame->size,fp);
 
+					memcpy(pre_size,&t_VideoFrame->size,pre_size_len);
+					reverse_str(pre_size,pre_size_len);
+
+					
+					fwrite(pre_size,sizeof(int),1,fp);
+
+				}
+*/
 				free(t_VideoFrame->v_Buffer);
-				fwrite(pre_size,sizeof(int),1,fp);
+				printf("free video buf_addr=%x\n",t_VideoFrame->v_Buffer);
+				
 			}
 		}
 
 		//rename
 		
 		ret = rename(t_filename,file_name);
-		printf("rename %s to %s return:[%d],reason:[%s]\n"
-				,t_filename,file_name,ret,strerror(errno));
+		printf("rename %s to %s return:[%d]\n"
+				,t_filename,file_name,ret);
 	}
 
-CUT_FLV_END:
+//CUT_FLV_END:
 	if(t_filename)
 	{
 		free(t_filename);

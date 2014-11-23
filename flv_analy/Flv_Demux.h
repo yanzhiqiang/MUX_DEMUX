@@ -40,12 +40,18 @@ public:
 	int		get_videocount();
 	int		get_audiocount();
 	int		get_flvhead(void* dst,int* dst_len);
+	int		analy_taghead(unsigned char* src,int size,unsigned int* timestamp=NULL);
+
+	bool	judge_video();
+	bool	judge_audio();
 
 private:
 	char* m_FileName;
 	unsigned char* m_Content;
-	bool m_BFirst;
-	bool b_Rec;
+	bool	m_BFirst;
+	bool	b_Rec;
+	bool	b_Video;
+	bool	b_Audio;
 
 	//private 
 	int setinit_params();
@@ -54,7 +60,7 @@ private:
 	int analy_flvhead(unsigned char* src);
 	
 	int analy_scripttag(unsigned char* src,int size);
-	int analy_taghead(unsigned char* src,int size);
+	
 	int analy_scriptdata(unsigned char* src,int size);
 	
 	int analy_audiotag(unsigned char* src,int size);

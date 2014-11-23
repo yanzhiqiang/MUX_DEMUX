@@ -12,6 +12,7 @@
 
 
 
+
 DWORD	WINAPI	Rec_Func(LPVOID	lpParam)
 {
 	FLV_Demux* t_p = (FLV_Demux*)lpParam;
@@ -94,10 +95,16 @@ int FLV_Demux::setinit_params()
 	m_VideoQueue = NULL;
 	m_AudioQueue = NULL;
 	m_TagDataLength=0;
+	
 	m_Reciever=NULL;
 	m_ScriptContent=NULL;
 	m_scriptnum=0;
 	m_FlvheadContent=NULL;
+	b_Video=false;
+	b_Audio=false;
+
+	memset(&m_AudioFrame,0,sizeof(struct Audio_Frame));
+	memset(&m_VideoFrame,0,sizeof(struct Video_Frame));
 
 	return 0;
 }
@@ -331,15 +338,20 @@ int FLV_Demux::start_recieve()
 				{
 					//保存音频数据
 					m_AudioFrame.size = ret;
-					m_AudioFrame.a_Buffer = (unsigned char*)calloc(m_AudioFrame.size,sizeof(unsigned char));
+					if(m_AudioFrame.a_Buffer == NULL)
+					{
+
+						m_AudioFrame.a_Buffer = (unsigned char*)calloc(m_AudioFrame.size,sizeof(unsigned char));
+					}
 					memcpy(m_AudioFrame.a_Buffer,m_Content+analypos,m_AudioFrame.size);
-					//printf("audio size is %d,buffer=%x\n",m_AudioFrame.size,m_AudioFrame.a_Buffer);
-					/*int k=0;
-					for(k=0;k<3;k++)
-					{*/
+
+					////printf("audio size is %d,buffer=%x\n",m_AudioFrame.size,m_AudioFrame.a_Buffer);
+					///*int k=0;
+					//for(k=0;k<3;k++)
+					//{*/
 						if(0 != m_AudioQueue->PushItem((void*)&m_AudioFrame))
 						{
-							//if(m_mode == OFFLINE_MODE)
+							printf("audio too full sleep 20ms\n");
 							Sleep(20);
 							continue;
 						}
@@ -354,7 +366,7 @@ int FLV_Demux::start_recieve()
 								,__FILE__,__FUNCTION__,__LINE__,m_AudioQueue->GetCount());
 					}*/
 					
-
+					m_AudioFrame.a_Buffer=NULL;
 					analypos+=ret;	
 					analypos+=4;
 									
@@ -370,15 +382,22 @@ int FLV_Demux::start_recieve()
 				int ret = analy_videotag(m_Content+analypos,readsize-analypos);
 				if(ret > 0)
 				{
-					//视频
 					m_VideoFrame.size = ret;
-					m_VideoFrame.v_Buffer = (unsigned char*)calloc(m_VideoFrame.size,sizeof(unsigned char));
+					//视频
+					if(m_VideoFrame.v_Buffer == NULL)
+					{
+						
+						m_VideoFrame.v_Buffer = (unsigned char*)calloc(m_VideoFrame.size,sizeof(unsigned char));
+						printf("allocate video buf_addr=%x\n",m_VideoFrame.v_Buffer);
+					}
 					memcpy(m_VideoFrame.v_Buffer,m_Content+analypos,m_VideoFrame.size);
+				
 					/*int k=0;
 					for(k=0;k<3;k++)
 					{*/
 						if(0 != m_VideoQueue->PushItem(&m_VideoFrame))
 						{
+							printf("video too full sleep 20ms\n");
 							Sleep(20);
 							continue;
 						}
@@ -392,7 +411,7 @@ int FLV_Demux::start_recieve()
 						printf("%s %s %d push audio item failed,count:[%d]"
 								,__FILE__,__FUNCTION__,__LINE__,m_VideoQueue->GetCount());
 					}*/
-
+					m_VideoFrame.v_Buffer=NULL;
 					analypos+=ret;
 					analypos+=4;
 					
@@ -481,6 +500,7 @@ int FLV_Demux::analy_videotag(unsigned char* src,int src_size)
 int FLV_Demux::analy_videoinfo(unsigned char* src)
 {
 	char log_info[1024]={0};
+	int	 log_length = 1024;
 	int size = 0;
 
 	unsigned int tmp = Get_Bits(src,0xF0);
@@ -489,19 +509,25 @@ int FLV_Demux::analy_videoinfo(unsigned char* src)
 	switch(tmp/16)
 	{
 	case 1:
-		sprintf(log_info+strlen(log_info),"%s","key frame : ");
+		//sprintf_s(log_info+strlen(log_info),"%s","key frame : ");
+		memcpy(log_info+strlen(log_info),"key frame : ",strlen("key frame : "));
 		break;
 	case 2:
-		sprintf(log_info+strlen(log_info),"%s","inter frame : ");
+		//sprintf_s(log_info+strlen(log_info),"%s","inter frame : ");
+		memcpy(log_info+strlen(log_info),"inter frame : ",strlen("inter frame : "));
+		
 		break;
 	case 3:
-		sprintf(log_info+strlen(log_info),"%s","disposable frame : ");
+		//sprintf_s(log_info+strlen(log_info),"%s","disposable frame : ");
+		memcpy(log_info+strlen(log_info),"disposable frame : ",strlen("disposable frame : "));
 		break;
 	case 4:
-		sprintf(log_info+strlen(log_info),"%s","generated key frame : ");
+		memcpy(log_info+strlen(log_info),"generated key frame : ",strlen("generated key frame : "));
+		//sprintf(log_info+strlen(log_info),"%s","generated key frame : ");
 		break;
 	case 5:
-		sprintf(log_info+strlen(log_info),"%s","video inf/command frame : ");
+		memcpy(log_info+strlen(log_info),"video inf/command frame : ",strlen("video inf/command frame : "));
+		//sprintf(log_info+strlen(log_info),"%s","video inf/command frame : ");
 		break;
 
 	default:
@@ -518,22 +544,28 @@ int FLV_Demux::analy_videoinfo(unsigned char* src)
 	{
 	
 	case 2:
-		sprintf(log_info+strlen(log_info),"%s"," Sorenson H.263 : ");
+		memcpy(log_info+strlen(log_info)," Sorenson H.263 : ",strlen(" Sorenson H.263 : "));
+		//sprintf(log_info+strlen(log_info),"%s"," Sorenson H.263 : ");
 		break;
 	case 3:
-		sprintf(log_info+strlen(log_info),"%s"," Screen video : ");
+		memcpy(log_info+strlen(log_info)," Screen video : ",strlen(" Screen video : "));
+		//sprintf(log_info+strlen(log_info),"%s"," Screen video : ");
 		break;
 	case 4:
-		sprintf(log_info+strlen(log_info),"%s"," On2 VP6 : ");
+		memcpy(log_info+strlen(log_info)," On2 VP6 : ",strlen(" On2 VP6 : "));
+		//sprintf(log_info+strlen(log_info),"%s"," On2 VP6 : ");
 		break;
 	case 5:
-		sprintf(log_info+strlen(log_info),"%s"," On2 VP6 with alpha channel : ");
+		memcpy(log_info+strlen(log_info)," On2 VP6 with alpha channel : ",strlen(" On2 VP6 with alpha channel : "));
+		//sprintf(log_info+strlen(log_info),"%s"," On2 VP6 with alpha channel : ");
 		break;
 	case 6:
-		sprintf(log_info+strlen(log_info),"%s"," Screen video version 2 ");
+		memcpy(log_info+strlen(log_info)," Screen video version 2 ",strlen(" Screen video version 2 "));
+		//sprintf(log_info+strlen(log_info),"%s"," Screen video version 2 ");
 		break;
 	case 7:
-		sprintf(log_info+strlen(log_info),"%s"," AVC : ");
+		memcpy(log_info+strlen(log_info)," AVC : ",strlen(" AVC : "));
+		//sprintf(log_info+strlen(log_info),"%s"," AVC : ");
 		break;
 
 	default:
@@ -549,13 +581,15 @@ int FLV_Demux::analy_videoinfo(unsigned char* src)
 		switch(AVC_PacketType)
 		{
 		case 0:
-			sprintf(log_info+strlen(log_info),"%s"," AVC sequence header : ");
+			memcpy(log_info+strlen(log_info)," AVC sequence header : ",strlen(" AVC sequence header : "));
+			//sprintf(log_info+strlen(log_info),"%s"," AVC sequence header : ");
 			break;
 		case 1:
-			sprintf(log_info+strlen(log_info),"%s"," AVC NALU : ");
+
+			sprintf_s(log_info+strlen(log_info),log_length-strlen(log_info),"%s"," AVC NALU : ");
 			break;
 		case 2:
-			sprintf(log_info+strlen(log_info),"%s"," AVC end of sequence : ");
+			sprintf_s(log_info+strlen(log_info),log_length-strlen(log_info),"%s"," AVC end of sequence : ");
 			break;
 		default:
 			log_to_file(FLOG_ERR,"AVC_PacketType(%d) isnot defined ",AVC_PacketType);
@@ -764,8 +798,10 @@ int FLV_Demux::analy_scriptdata(unsigned char* src,int src_size)
 	return size;
 }
 
-
-int FLV_Demux::analy_taghead(unsigned char* src,int src_size)
+/*
+	此函数中有类的成员变量的赋值，因为没有加锁，所以禁止多线程操作。
+*/
+int FLV_Demux::analy_taghead(unsigned char* src,int src_size,unsigned int* src_timestamp)
 {
 	int size = 0;
 	unsigned int tmp=0;
@@ -778,21 +814,19 @@ int FLV_Demux::analy_taghead(unsigned char* src,int src_size)
 	char tag_name[20]={0};
 	if(*(src+size) == 0x12)
 	{
-		sprintf(tag_name,"%s","script");
+		sprintf_s(tag_name,20,"%s","script");
 	}
 	else if(*(src+size) == 0x08)
 	{
-		sprintf(tag_name,"%s","audio");
+		sprintf_s(tag_name,20,"%s","audio");
 	}
 	else if(*(src+size) == 0x09)
 	{
-		sprintf(tag_name,"%s","video");
+		sprintf_s(tag_name,20,"%s","video");
 	}
 	size++;	//0x12,0x08,0x09的标记
-
+	
 	m_TagDataLength = Get_Int(src+size,3);
-	//printf("%s header length is %u\n"
-	//		,tag_name,m_TagDataLength);
 	
 	log_to_file(FLOG_DEBUG,"%s header length is %u\n",tag_name,m_TagDataLength);
 
@@ -804,8 +838,13 @@ int FLV_Demux::analy_taghead(unsigned char* src,int src_size)
 	size +=3;
 	time_stamp += (*(src+size))*256*256*256;
 
+	if(src_timestamp)
+	{
+		*src_timestamp = time_stamp;
+	}
+
 	size++;
-//	printf("%s timestamp is %u\n",tag_name,time_stamp);
+	printf("%s timestamp is [%u] [%d]\n",tag_name,time_stamp,time_stamp);
 	log_to_file(FLOG_NORMAL,"%s timestamp is %u\n",tag_name,time_stamp);
 
 	unsigned int tmp_id =  Get_Int(src+size,3);
@@ -816,6 +855,7 @@ int FLV_Demux::analy_taghead(unsigned char* src,int src_size)
 
 	return size;
 }
+
 
 int FLV_Demux::analy_flvhead(unsigned char* src)
 {
@@ -831,10 +871,12 @@ int FLV_Demux::analy_flvhead(unsigned char* src)
 	if(tmp &0x04)
 	{
 		printf("have audio\n");
+		b_Audio=true;
 	}
 	if(tmp & 0x01)
 	{
 		printf("have video\n");
+		b_Video=true;
 	}
 
 	//获取数据的偏移量值，这个值总为9。从File Header开始到File Body开始的字节数
@@ -898,4 +940,14 @@ int FLV_Demux::get_audiocount()
 int	FLV_Demux::get_flvhead(void* dst,int* dst_len)
 {
 	return m_FlvheadContent->memcpy_front(dst,dst_len);
+}
+
+bool	FLV_Demux::judge_video()
+{
+	return b_Video;
+}
+
+bool	FLV_Demux::judge_audio()
+{
+	return b_Audio;
 }

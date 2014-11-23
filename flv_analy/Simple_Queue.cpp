@@ -1,4 +1,5 @@
 #include "Simple_Queue.h"
+#include "Get_DTool.h"
 #include <Windows.h>
 #include <stdio.h>
 
@@ -42,7 +43,7 @@ int Simple_Queue::initparam()
 int Simple_Queue::init(int num,int size)
 {
 	int ret = 0;
-	m_itemlink = (void**)calloc(num,sizeof(char*));
+	m_itemlink = (void**)calloc(num,sizeof(void*));
 
 	if(!m_itemlink)
 	{
@@ -54,7 +55,7 @@ int Simple_Queue::init(int num,int size)
 
 	for(int i=0;i<m_num;i++)
 	{
-		m_itemlink[i] = (void*)calloc(m_size,sizeof(char));
+		m_itemlink[i] = (void*)calloc(m_size,sizeof(unsigned char));
 		if(!m_itemlink[i])
 		{
 			ret = -1;
@@ -78,6 +79,11 @@ int Simple_Queue::PushItem(void* item)
 	//EnterCriticalSection(&m_cslock);
 	//printf("m_size is %d\n",m_size);
 	memcpy(m_itemlink[m_wpos],item,m_size);
+	//m_itemlink[m_wpos]=item;
+
+//struct Audio_Frame* t_item = (struct Audio_Frame*)m_itemlink[m_wpos];
+//printf("push item size:[%d],buf_addr:[%x]\n",t_item->size,t_item->a_Buffer);
+
 	m_wpos = (m_wpos+1)%m_num;
 	m_wnum++;
 	return 0;

@@ -42,11 +42,11 @@ int VA_Receive::rec_data(int src_len,unsigned char* src_content,bool* over_flag)
 		if(m_Fp == NULL)
 		{
 			//图像处理需要用rb。
-			m_Fp = fopen(m_SrcAddr,"rb");
+			fopen_s(&m_Fp,m_SrcAddr,"rb");
 			if(!m_Fp)
 			{
-				printf("%s %s %d open file(%s) failed,[%s]",
-					__FILE__,__FUNCTION__,__LINE__,m_SrcAddr,strerror(errno));
+				printf("%s %s %d open file(%s) failed",
+					__FILE__,__FUNCTION__,__LINE__,m_SrcAddr );
 				return -1;
 			}
 		}

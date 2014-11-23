@@ -16,4 +16,7 @@
 #define STATE_RUNNING 1
 #define STATE_OVER 2
 
+#define TIMESTAMP_MAX 0xFFFFFFFF
+#define TIMESTAMP_ROLLBACK	30*60*1000
+
 #endif
