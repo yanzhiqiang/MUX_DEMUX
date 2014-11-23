@@ -197,18 +197,18 @@ int FLV_Demux::start_recieve()
 	int ret = 0;
 	bool b_overflag = false;
 	m_Rec = STATE_RUNNING;
-		
+
 	int readsize = 0;
 	int readpos=0;
-	
-	
+
+
 	while(!b_overflag)
 	{
 		if(b_stop)
 		{
 			goto START_RECIEVE_END;
 		}
-			
+
 		int analypos = 0;
 
 		int reciever_size = 0;
@@ -223,14 +223,14 @@ int FLV_Demux::start_recieve()
 		if(reciever_size <= 0)
 		{
 			printf("%s %s %d read size(%d) <= 0"
-					,__FILE__,__FUNCTION__,__LINE__,reciever_size);
+				,__FILE__,__FUNCTION__,__LINE__,reciever_size);
 			break;
 		}
 		printf("reciever_size is %d\n",reciever_size);
 		readsize = readpos + reciever_size;
-			
+
 		log_to_file(FLOG_NORMAL,"read file readpos=%d,readsize=%d analypos=%d rec_size =%d start"
-						,readpos,readsize,analypos,reciever_size);
+			,readpos,readsize,analypos,reciever_size);
 		if(m_BFirst)
 		{
 			if(readsize <3)
@@ -238,20 +238,20 @@ int FLV_Demux::start_recieve()
 				printf("FLV_Demux::start_recieve readsize(%d) < 3\n",readsize);
 				continue;
 			}
-			
+
 			if(CheckFLV(m_Content) != 0)
 			{
 				log_to_file(FLOG_NORMAL,"FLV_Demux::start_recieve %s is not flv file",m_FileName);
 				goto START_RECIEVE_END;
 			}
 
-					
+
 			m_BFirst = false;
 
 			log_to_file(FLOG_NORMAL,"FLV_Demux::start_recieve %s is flv file",m_FileName);
 			printf("FLV_Demux::start_recieve %s is flv file\n",m_FileName);
 
-				//add analy header
+			//add analy header
 			if(readsize <9)
 			{
 				printf("FLV_Demux::start_recieve readsize(%d) < 9,can't analy flvheander\n",readsize);
@@ -259,17 +259,17 @@ int FLV_Demux::start_recieve()
 			}
 			analypos += analy_flvhead(m_Content);
 			m_FlvheadContent->memcpy_push(m_Content,analypos);
-							
+
 		}
 
 		if(readsize < analypos + 5)
 		{
 			printf("FLV_Demux::start_recieve readsize(%d) <analypos(%d) + 5,can't analy flvtag\n"
 				,readsize,analypos);
-				
+
 			continue;
 		}
-		
+
 		analypos+=4;
 		printf("analypos is [%d]\n",analypos);
 		//pre tag length
@@ -281,18 +281,18 @@ int FLV_Demux::start_recieve()
 			}
 			//printf("pre tag length is %u\n"
 			//		,Get_Int(m_Content+analypos,4));
-			
-			
-				
+
+
+
 			if(analypos >= readsize)
 			{
 				printf("analy normal,%d %d\n"
 					,analypos,readsize);
 				log_to_file(FLOG_NORMAL,"analy normal,%d %d\n"
-						,analypos,readsize);
+					,analypos,readsize);
 				break;
 			}
-			
+
 			if(*(m_Content+analypos) == 0x12)
 			{
 				//analy script
@@ -302,25 +302,12 @@ int FLV_Demux::start_recieve()
 					m_scriptnum++;
 					if(m_scriptnum <=1)
 					{
-						//在这里保存脚本数据
-						/*int k=0;
-						for(k=0;k<3;k++)
-						{*/
-							if(0 != m_ScriptContent->memcpy_push(m_Content+analypos,ret))
-							{
-								Sleep(20);
-								continue;
-							}
-						/*	else
-							{
-								break;
-							}
-						}
-						if(k>=3)
+						if(0 != m_ScriptContent->memcpy_push(m_Content+analypos,ret))
 						{
-							printf("%s %s %d push script item failed"
-									,__FILE__,__FUNCTION__,__LINE__);
-						}*/
+							Sleep(20);
+							continue;
+						}
+
 					}
 					analypos +=ret;
 					analypos+=4;
@@ -337,39 +324,26 @@ int FLV_Demux::start_recieve()
 				if(ret > 0)
 				{
 					//保存音频数据
-					m_AudioFrame.size = ret;
+
 					if(m_AudioFrame.a_Buffer == NULL)
 					{
-
+						m_AudioFrame.size = ret;
 						m_AudioFrame.a_Buffer = (unsigned char*)calloc(m_AudioFrame.size,sizeof(unsigned char));
+						memcpy(m_AudioFrame.a_Buffer,m_Content+analypos,m_AudioFrame.size);
 					}
-					memcpy(m_AudioFrame.a_Buffer,m_Content+analypos,m_AudioFrame.size);
 
-					////printf("audio size is %d,buffer=%x\n",m_AudioFrame.size,m_AudioFrame.a_Buffer);
-					///*int k=0;
-					//for(k=0;k<3;k++)
-					//{*/
-						if(0 != m_AudioQueue->PushItem((void*)&m_AudioFrame))
-						{
-							printf("audio too full sleep 20ms\n");
-							Sleep(20);
-							continue;
-						}
-						/*else
-						{
-							break;
-						}*/
-					/*}
-					if(k>=3)
+
+					if(0 != m_AudioQueue->PushItem((void*)&m_AudioFrame))
 					{
-						printf("%s %s %d push audio item failed,count:[%d]\n"
-								,__FILE__,__FUNCTION__,__LINE__,m_AudioQueue->GetCount());
-					}*/
-					
+						printf("audio too full sleep 20ms\n");
+						Sleep(20);
+						continue;
+					}
+
 					m_AudioFrame.a_Buffer=NULL;
 					analypos+=ret;	
 					analypos+=4;
-									
+
 				}
 				else
 				{
@@ -382,39 +356,29 @@ int FLV_Demux::start_recieve()
 				int ret = analy_videotag(m_Content+analypos,readsize-analypos);
 				if(ret > 0)
 				{
-					m_VideoFrame.size = ret;
+
 					//视频
 					if(m_VideoFrame.v_Buffer == NULL)
 					{
-						
+						m_VideoFrame.size = ret;
 						m_VideoFrame.v_Buffer = (unsigned char*)calloc(m_VideoFrame.size,sizeof(unsigned char));
-						printf("allocate video buf_addr=%x\n",m_VideoFrame.v_Buffer);
+						//printf("allocate video buf_addr=%x\n",m_VideoFrame.v_Buffer);
+						memcpy(m_VideoFrame.v_Buffer,m_Content+analypos,m_VideoFrame.size);
+
 					}
-					memcpy(m_VideoFrame.v_Buffer,m_Content+analypos,m_VideoFrame.size);
-				
-					/*int k=0;
-					for(k=0;k<3;k++)
-					{*/
-						if(0 != m_VideoQueue->PushItem(&m_VideoFrame))
-						{
-							printf("video too full sleep 20ms\n");
-							Sleep(20);
-							continue;
-						}
-						/*else
-						{
-							break;
-						}*/
-					/*}
-					if(k>=3)
+
+
+					if(0 != m_VideoQueue->PushItem(&m_VideoFrame))
 					{
-						printf("%s %s %d push audio item failed,count:[%d]"
-								,__FILE__,__FUNCTION__,__LINE__,m_VideoQueue->GetCount());
-					}*/
+						printf("video too full sleep 20ms\n");
+						Sleep(20);
+						continue;
+					}
+
 					m_VideoFrame.v_Buffer=NULL;
 					analypos+=ret;
 					analypos+=4;
-					
+
 				}
 				else
 				{
@@ -428,12 +392,12 @@ int FLV_Demux::start_recieve()
 				goto START_RECIEVE_END;
 			}
 		}
-			
+
 		analypos-=4;	//analypos break出来的时候要还原。
 
 		printf("analypos=%d,readsize=%d\n"
-				,analypos,readsize);
-			
+			,analypos,readsize);
+
 		//copy
 		if(analypos < readsize)
 		{
@@ -453,7 +417,7 @@ int FLV_Demux::start_recieve()
 			printf("read over,%d > %d\n",analypos,readsize);
 			log_to_file(FLOG_ERR,"read over,%d > %d\n",analypos,readsize);
 		}
-			
+
 		if(readpos > READ_BUFFERSIZE)
 		{
 			printf("single tag length > %d,it should be created more\n",READ_BUFFERSIZE);
@@ -461,11 +425,11 @@ int FLV_Demux::start_recieve()
 			ret=-1;
 			goto START_RECIEVE_END;
 		}
-			log_to_file(FLOG_NORMAL,"read file readpos=%d,readsize=%d analypos=%d end"
-					,readpos,readsize,analypos);
+		log_to_file(FLOG_NORMAL,"read file readpos=%d,readsize=%d analypos=%d end"
+			,readpos,readsize,analypos);
 	}
-		
-	
+
+
 START_RECIEVE_END:
 	m_Rec = STATE_OVER;
 	return ret;
@@ -844,7 +808,7 @@ int FLV_Demux::analy_taghead(unsigned char* src,int src_size,unsigned int* src_t
 	}
 
 	size++;
-	printf("%s timestamp is [%u] [%d]\n",tag_name,time_stamp,time_stamp);
+	//printf("%s timestamp is [%u] [%d]\n",tag_name,time_stamp,time_stamp);
 	log_to_file(FLOG_NORMAL,"%s timestamp is %u\n",tag_name,time_stamp);
 
 	unsigned int tmp_id =  Get_Int(src+size,3);
@@ -950,4 +914,13 @@ bool	FLV_Demux::judge_video()
 bool	FLV_Demux::judge_audio()
 {
 	return b_Audio;
+}
+
+unsigned int	FLV_Demux::get_tagtimestamp(unsigned char* src)
+{
+	int size = 4;
+	unsigned int time_stamp = Get_Int(src+size,3);
+	size +=3;
+	time_stamp += (*(src+size))*256*256*256;
+	return time_stamp;
 }

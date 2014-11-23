@@ -45,6 +45,10 @@ public:
 	bool	judge_video();
 	bool	judge_audio();
 
+	/*
+		从tag中返回时间戳
+	*/
+	unsigned int	get_tagtimestamp(unsigned char* src);
 private:
 	char* m_FileName;
 	unsigned char* m_Content;

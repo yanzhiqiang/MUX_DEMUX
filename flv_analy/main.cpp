@@ -39,7 +39,7 @@ int main(int argc, const char * argv[])
 		flv_demux->init(argv[1]);
 
 		//两个问题
-		t_cutflv->cut_flv(2*1000,4*1000,"test.flv");
+		t_cutflv->cut_flv(1*1000,4*1000,"test.flv");
 		delete flv_demux;
 	}
 	

@@ -94,7 +94,7 @@ int CUT_Flv::cut_flv(int start_time,int end_time,char* file_name)
 				{
 					continue;
 				}
-				m_flv->analy_taghead((unsigned char*)m_scriptcontent,len_script,&base_timestamp);
+				base_timestamp = m_flv->get_tagtimestamp((unsigned char*)m_scriptcontent);
 				printf("base timestamp is %u\n",base_timestamp);
 				fwrite(m_scriptcontent,sizeof(unsigned char),len_script,fp);
 				memcpy(pre_size,&len_script,pre_size_len);
@@ -111,29 +111,27 @@ int CUT_Flv::cut_flv(int start_time,int end_time,char* file_name)
 			t_VideoFrame = (struct Video_Frame*)m_flv->pop_videoitem();
 			if(t_VideoFrame)
 			{
-				//m_flv->analy_taghead(t_VideoFrame->v_Buffer,t_VideoFrame->size,&video_timestamp);
+				video_timestamp=m_flv->get_tagtimestamp(t_VideoFrame->v_Buffer);
 			}
 
 
 			t_AudioFrame = (struct Audio_Frame*)m_flv->pop_audioitem();
 			if(t_AudioFrame)
 			{
-				//printf("pop item size:[%d],buf_addr:[%x]\n",t_AudioFrame->size,t_AudioFrame->a_Buffer);
-				//m_flv->analy_taghead(t_AudioFrame->a_Buffer,t_AudioFrame->size,&audio_timestamp);
+				audio_timestamp=m_flv->get_tagtimestamp(t_AudioFrame->a_Buffer);	
 			}
 
 			
 			//如果视频存在
-			/*if(t_VideoFrame)
+			if(t_VideoFrame)
 			{
-				printf("Cut_Flv video timestamp is %u\n",video_timestamp);
 				if(video_timestamp > video_lttimestamp + TIMESTAMP_ROLLBACK)
 				{
 					start_time += video_timestamp;
 					end_time += video_timestamp;
 					printf("timestamp rollback [%u] to [%u] \n ",video_lttimestamp,video_timestamp);
 				}
-			}*/
+			}
 
 			//设置上次时间戳
 			video_lttimestamp=video_timestamp;
@@ -141,7 +139,7 @@ int CUT_Flv::cut_flv(int start_time,int end_time,char* file_name)
 			//先处理音频
 			if(t_AudioFrame)
 			{
-				/*if(audio_timestamp >= start_time && audio_timestamp < end_time)
+				if(audio_timestamp >= start_time && audio_timestamp < end_time)
 				{
 					fwrite(t_AudioFrame->a_Buffer,sizeof(unsigned char),t_AudioFrame->size,fp);
 
@@ -150,13 +148,13 @@ int CUT_Flv::cut_flv(int start_time,int end_time,char* file_name)
 					
 					fwrite(pre_size,sizeof(int),1,fp);
 
-				}*/
+				}
 				free(t_AudioFrame->a_Buffer);
 
 			}
 			if(t_VideoFrame)
 			{
-				/*if(video_timestamp >= start_time && video_timestamp < end_time)
+				if(video_timestamp >= start_time && video_timestamp < end_time)
 				{
 					fwrite(t_VideoFrame->v_Buffer,sizeof(unsigned char),t_VideoFrame->size,fp);
 
@@ -167,10 +165,9 @@ int CUT_Flv::cut_flv(int start_time,int end_time,char* file_name)
 					fwrite(pre_size,sizeof(int),1,fp);
 
 				}
-*/
-				free(t_VideoFrame->v_Buffer);
-				printf("free video buf_addr=%x\n",t_VideoFrame->v_Buffer);
 				
+				free(t_VideoFrame->v_Buffer);
+				//printf("free video videotime=%u buf_addr=%x\n",video_timestamp,t_VideoFrame->v_Buffer);
 			}
 		}
 
