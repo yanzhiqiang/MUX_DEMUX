@@ -1,6 +1,5 @@
 #include "Get_DTool.h"
 #include <Windows.h>
-#include <stdio.h>
 
 unsigned int Get_Int(unsigned char*src,int bytes)
 {
@@ -64,3 +63,4 @@ int reverse_str(char* src,int src_len)
 	}
 	return 0;
 }
+

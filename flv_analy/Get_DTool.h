@@ -1,7 +1,7 @@
 #ifndef __GET_DTOOL_H_
 #define __GET_DTOOL_H_
 
-
+#include <stdio.h>
 
 struct Video_Frame
 {
@@ -24,5 +24,6 @@ double char2double(unsigned char * buf,unsigned int size);
 unsigned int Get_Bits(unsigned char* src,unsigned int bits);
 
 int reverse_str(char* src,int src_len);
+
 
 #endif
