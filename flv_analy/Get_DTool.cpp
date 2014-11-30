@@ -64,3 +64,14 @@ int reverse_str(char* src,int src_len)
 	return 0;
 }
 
+
+unsigned int Get_TimeStamp(unsigned char* src)
+{
+	int index_timestamp=4;	//从tag的第4个字节开始，长度是4个字节。
+
+	unsigned int timestamp = Get_Int(src+index_timestamp,3);
+	index_timestamp +=3;
+	timestamp += (*(src+index_timestamp))*256*256*256;
+	return timestamp;
+}
+

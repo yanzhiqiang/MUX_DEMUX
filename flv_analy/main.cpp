@@ -29,10 +29,6 @@ int main(int argc, const char * argv[])
 
 	FLV_Demux* flv_demux =  new FLV_Demux();
 	CUT_Flv*   t_cutflv = new CUT_Flv();
-	if(t_cutflv)
-	{
-
-	}
 	if(flv_demux)
 	{
 		t_cutflv->set_flvdemux(flv_demux);
