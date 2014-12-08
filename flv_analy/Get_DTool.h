@@ -29,4 +29,25 @@ int reverse_str(char* src,int src_len);
 */
 unsigned int Get_TimeStamp(unsigned char* src);
 
+/*
+设置timestamp
+*/
+unsigned int Add_TimeStamp(unsigned char* src,unsigned int duration);
+
+/*
+获取duration
+*/
+int Get_Duration(unsigned char* src,int src_size,char* match_word,double* dst_content);
+
+/*
+设置duration
+*/
+int Set_ScriptWord(unsigned char* src,int src_size,char* match_word,double dst_duration);
+
+/*
+double2char 
+for example  'duration' in scriptcontent
+*/
+double double2char(double dst_duration,unsigned char *buf);
+
 #endif

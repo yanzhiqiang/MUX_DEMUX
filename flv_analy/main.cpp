@@ -51,7 +51,7 @@ int main(int argc, const char * argv[])
 			flv_demux->init(argv[1]);
 
 			//两个问题
-			t_cutflv->cut_flv(atoi(argv[2]),atoi(argv[3]),(char*)argv[1]);
+			t_cutflv->cut_flv(atoi(argv[2]),atoi(argv[3]),(char*)argv[4]);
 			delete flv_demux;
 		}
 	}
@@ -97,7 +97,7 @@ int Read_Config()
 	}
 	else
 	{
-		printf("fopen  error ,reason is [%s]",strerror(errno));
+		//printf("fopen  error ,reason is [%s]",strerror(errno));
 	}
 	return 0;
 }

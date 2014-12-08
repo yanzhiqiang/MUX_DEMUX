@@ -307,7 +307,7 @@ int FLV_Demux::start_recieve()
 							Sleep(20);
 							continue;
 						}
-
+						printf("push len script:[%d]\n",ret);
 					}
 					analypos +=ret;
 					analypos+=4;

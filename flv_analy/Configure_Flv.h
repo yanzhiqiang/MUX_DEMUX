@@ -12,6 +12,8 @@
 #define READ_BUFFERSIZE	1024*1024
 #define SUM_NUM		6
 
+#define LINE_SIZE	1024
+
 #define STATE_STOP 0
 #define STATE_RUNNING 1
 #define STATE_OVER 2
