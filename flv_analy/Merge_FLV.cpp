@@ -19,6 +19,7 @@ int Merge_FLV::init_params()
 	m_uAudioTimestamp = TIMESTAMP_MAX;
 	m_lFileIndex = 0;
 	m_uScriptLen = 0;
+	m_dFileSize = 0;
 	return 0;
 }
 
@@ -30,7 +31,7 @@ int Merge_FLV::merge_flv(const char* src_filename1,const char* src_filename2,con
 
 	char dst_filenametmp[100]={0};
 	memset(dst_filenametmp,0,100);
-	sprintf_s(dst_filenametmp,"%_tmp",dst_filename);
+	sprintf_s(dst_filenametmp,100,"%s_tmp",dst_filename);
 
 	script_content1 = new unsigned char[script_size];
 	script_content2 = new unsigned char[script_size];
@@ -45,10 +46,14 @@ int Merge_FLV::merge_flv(const char* src_filename1,const char* src_filename2,con
 
 	//处理离线文件的duration
 	Set_ScriptWord(script_content1+11,m_uScriptLen-11,"duration",sum_duration);
+	Set_ScriptWord(script_content1+11,m_uScriptLen-11,"filesize",m_dFileSize);
 	Get_Duration(script_content1+11,m_uScriptLen-11,"duration",&duration);
-	printf("after adjust duration is %lf,should be is %lf",duration,sum_duration);
+	double t_filesize = 0;
+	Get_Duration(script_content1+11,m_uScriptLen-11,"filesize",&t_filesize);
+	printf("after adjust duration is %lf,should be is %lf\n filesize:[%lf],should:[%lf]"
+			,duration,sum_duration,m_dFileSize,t_filesize);
 
-	//replace_filescript(dst_filenametmp,dst_filename,script_content1);
+	replace_filescript(dst_filenametmp,dst_filename,script_content1);
 
 	delete[] script_content1;
 	script_content1=NULL;
@@ -98,6 +103,7 @@ int Merge_FLV::handle_filetag(const char* src_filename,const char* dst_filename,
 	int  b_head = false;
 
 	double t_duration = 0;
+	double t_filesize = 0;
 	unsigned lt_uduration = (unsigned int)(*duration);
 	while(!t_flvdemux->check_recover() || (t_flvdemux->get_videocount() != 0) || (t_flvdemux->get_audiocount() != 0))
 	{
@@ -132,6 +138,7 @@ int Merge_FLV::handle_filetag(const char* src_filename,const char* dst_filename,
 
 			//printf("get len script:[%d]\n",len_script);
 			Get_Duration(script_content+11,len_script-11,"duration",&t_duration);
+			Get_Duration(script_content+11,len_script-11,"filesize",&t_filesize);
 			if(lt_uduration == 0)
 			{
 				m_uScriptLen = len_script;
@@ -197,7 +204,11 @@ int Merge_FLV::handle_filetag(const char* src_filename,const char* dst_filename,
 
 	if(t_duration)
 	{
-		*duration = t_duration*1000;
+		*duration = t_duration;
+	}
+	if(t_filesize)
+	{
+		m_dFileSize+=t_filesize;
 	}
 HANDLE_FILETAG_END:
 	if(fp_src)

@@ -21,6 +21,7 @@ private:
 
 	long m_lFileIndex;
 	unsigned int m_uScriptLen;
+	double m_dFileSize;
 };
 
 
