@@ -363,3 +363,29 @@ int Set_ScriptWord(unsigned char* src,int src_size,char* match_word,double dst_d
 	return size;
 }
 
+
+
+int  chararray2intarray(char* src,char* delim,int* dst,int dst_num)
+{
+	if(!src)
+	{
+		return -1;
+	}
+	char* t_src = src;
+	for(int i=0;i<dst_num;i++)
+	{
+		t_src = strstr(src,delim);
+		if(t_src)
+		{
+			char tmp[20]={0};
+			memcpy(tmp,src,t_src-src);
+			dst[i]=atoi(tmp);
+		}
+		else
+		{
+			return -1;
+		}
+		src = t_src+1;
+	}
+	return 0;
+}

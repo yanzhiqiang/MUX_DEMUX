@@ -18,10 +18,16 @@ public:
 	*/
 	int rec_data(int src_len,unsigned char* src_content,bool* over_flag);
 
+
+	int	get_httpstatus();
+
+	int get_socketret(int socket,char* send_buffer,int send_len,char* recv_buf,int recv_len);
 private:
+	int	init_socket();
 	char*	m_SrcAddr;
 	int		m_Mode;
 	FILE*	m_Fp;
+	int		m_iSocket;
 };
 
 #endif

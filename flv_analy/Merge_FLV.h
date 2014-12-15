@@ -11,6 +11,8 @@ public:
 	int merge_flv(const char* src_filename1,const char* src_filename2,const char* dst_filename);
 
 	int replace_filescript(const char* src_filename,const char* dst_filename,unsigned char* script_content);
+
+
 private:
 	int handle_filetag(const char* src_filename,const char* dst_filename,unsigned char* script_content,double* duration);
 	

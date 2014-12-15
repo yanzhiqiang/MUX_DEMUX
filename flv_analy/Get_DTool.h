@@ -50,4 +50,9 @@ for example  'duration' in scriptcontent
 */
 double double2char(double dst_duration,unsigned char *buf);
 
+/*
+char* תint
+*/
+int  chararray2intarray(char* src,char* delim,int* dst,int dst_num);
+
 #endif

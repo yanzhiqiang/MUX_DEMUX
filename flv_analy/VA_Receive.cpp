@@ -3,12 +3,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+//#include <winsock.h>
+#include <winsock2.h>
+#include "Get_DTool.h"
+
+#pragma comment(lib,"ws2_32.lib")
 
 VA_Receive::VA_Receive()
 {
 	m_SrcAddr = NULL;
 	m_Mode = OFFLINE_MODE;
 	m_Fp=NULL;
+	m_iSocket = INVALID_SOCKET;
 }
 
 VA_Receive::~VA_Receive()
@@ -23,15 +29,177 @@ VA_Receive::~VA_Receive()
 		fclose(m_Fp);
 		m_Fp=NULL;
 	}
+	if(LIVE_MODE == m_Mode)
+	{
+		WSACleanup();
+	}
 }
+int	VA_Receive::init_socket()
+{
+	int ret = 0;
+	WORD wVersionRequested=MAKEWORD( 2, 2 );
+	WSADATA wsaData;
 
+	ret =  WSAStartup(wVersionRequested,&wsaData);
+	if(0!=ret)
+	{
+		printf("no useable winsock dll for us\n");
+		ret = -1;
+		goto Init_Socket_End;
+	}
+
+	char* t_sSrcAddr = strstr(m_SrcAddr,"http://");
+	if(!t_sSrcAddr)
+	{
+		printf("socket address is not a net address(%s),not include http\n"
+				,m_SrcAddr);
+		ret = -1;
+		goto Init_Socket_End;
+	}
+	m_iSocket = socket(AF_INET,SOCK_STREAM,0);
+	struct sockaddr_in saddr;
+	saddr.sin_family = AF_INET;
+	int port = 80;
+	if(t_sSrcAddr[0] == 'w' && t_sSrcAddr[1] == 'w' && t_sSrcAddr[2] == 'w')
+	{
+		char dominSrcAddr[100]={0};
+		memset(dominSrcAddr,0,100);
+		char* p = strstr(t_sSrcAddr,"/");
+		if(p)
+		{
+			memcpy(dominSrcAddr,t_sSrcAddr,p-t_sSrcAddr);
+			struct hostent* t_hostent = gethostbyname(dominSrcAddr);
+			//获取第一个ip地址。
+			memcpy(&saddr.sin_addr,t_hostent->h_addr,4);
+		}
+		saddr.sin_port = port;
+	}
+	else 
+	{
+		//解析类似 192.168.1.1:898或者192.168.1.1
+		char* t_ipend = strstr(t_sSrcAddr,"/");
+		if(!t_ipend)
+		{
+			printf("address(%s) is error\n"
+					,m_SrcAddr);
+			ret = -1;
+			goto Init_Socket_End;
+		}
+
+		char* t_portstart = strstr(t_sSrcAddr,":");
+		if(t_portstart && t_portstart < t_ipend)
+		{
+			char s_port[10]={0};
+			memcpy(s_port,t_portstart+1,t_ipend-t_portstart);
+			port = atoi(s_port);
+			t_ipend = t_portstart;
+		}
+
+		char ipaddr[100]={0};
+		memcpy(ipaddr,t_sSrcAddr,t_ipend-t_sSrcAddr);
+		//    addrSrv.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
+		printf("addr ip[%s],port:[%d]\n",ipaddr,port);
+		saddr.sin_addr.S_un.S_addr = inet_addr(ipaddr);
+		saddr.sin_port = port;
+	}
+
+	//客户端用select方式去连接，服务器用epoll
+	if(connect(m_iSocket,(SOCKADDR *)&saddr,sizeof(saddr))!=0)  
+    {  
+        printf("Connect to server(%s) failed!\n",m_SrcAddr);  
+		ret = -2;
+        goto Init_Socket_End; 
+    }  
+  
+
+
+Init_Socket_End:
+	return ret;
+}
 int VA_Receive::set_init(const char* src_addr,int mode)
 {
 	m_Mode=mode;
 	m_SrcAddr = (char*)calloc(sizeof(char),strlen(src_addr)+1);
 	memcpy(m_SrcAddr,src_addr,strlen(src_addr));
+	int ret = 0;
+
+	if(m_Mode == LIVE_MODE)
+	{
+		ret = init_socket();
+		if(0 != ret)
+		{
+			printf("init socket failed\n");
+			goto Set_Init_End;
+		}
+
+		ret = get_httpstatus();
+	}
+
+Set_Init_End:
+	return ret;
+}
+
+int VA_Receive::get_httpstatus()
+{
+	int ret = 0;
+	char send_content[LINE_SIZE]={0};
+	memset(send_content,0,LINE_SIZE);
+
+	sprintf_s(send_content,sizeof(send_content),"GET %s HTTP/1.1\r\nHOST: localhost\
+												\r\nConnection: Keep-Alive\r\n\r\n");
+
+	char recv_buf[LINE_SIZE*10]={0};
+	memset(recv_buf,0,LINE_SIZE*10); 
+	int recv_len = LINE_SIZE*10;
+
+	ret = get_socketret(m_iSocket,send_content,strlen(send_content),recv_buf,recv_len);
+	
+	
+	return ret;
+}
+
+int VA_Receive::get_socketret(int socket,char* send_buffer,int send_len,char* recv_buf,int recv_len)
+{
+	
+	int send_aclen = send(socket,send_buffer,send_len,0);
+	if(send_aclen != send_len)
+	{
+		printf("send content failed len(%d) != (%d)\n"
+			,send_aclen,send_len);
+		return -1;
+	}
+
+	ULONGLONG timestamp = GetTickCount64();
+	int w_pos = 0;
+	while(GetTickCount64() <= timestamp + TIMEOUT_SOCKET*3)
+	{
+		//运用select
+		fd_set fd;  
+		FD_ZERO(&fd);  
+		FD_SET(socket,&fd);
+		timeval t = {TIMEOUT_SOCKET,1};
+		int iResult = select(0,&fd,NULL,NULL,&t);
+		if(iResult<0)
+		{
+			printf("select error\n");
+			return -1;
+		}
+		else if(iResult == 0)
+		{
+			continue;
+		}
+		else
+		{
+			int ac_recvlen = recv(socket,recv_buf,recv_len - w_pos,0);
+			if(ac_recvlen > 0)
+			{
+				//
+			}
+		}
+	}
 	return 0;
 }
+
 
 int VA_Receive::rec_data(int src_len,unsigned char* src_content,bool* over_flag)
 {
