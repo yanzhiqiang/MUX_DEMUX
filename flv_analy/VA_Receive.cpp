@@ -48,7 +48,7 @@ int	VA_Receive::init_socket()
 		goto Init_Socket_End;
 	}
 
-	char* t_sSrcAddr = strstr(m_SrcAddr,"http://");
+	char* t_sSrcAddr = strstr(m_SrcAddr,LIVE_PRE);
 	if(!t_sSrcAddr)
 	{
 		printf("socket address is not a net address(%s),not include http\n"
@@ -56,7 +56,7 @@ int	VA_Receive::init_socket()
 		ret = -1;
 		goto Init_Socket_End;
 	}
-	m_iSocket = socket(AF_INET,SOCK_STREAM,0);
+	m_iSocket = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 	struct sockaddr_in saddr;
 	saddr.sin_family = AF_INET;
 	int port = 80;
@@ -72,10 +72,11 @@ int	VA_Receive::init_socket()
 			//获取第一个ip地址。
 			memcpy(&saddr.sin_addr,t_hostent->h_addr,4);
 		}
-		saddr.sin_port = port;
+		saddr.sin_port = htons(port);
 	}
 	else 
 	{
+		t_sSrcAddr += strlen(LIVE_PRE);
 		//解析类似 192.168.1.1:898或者192.168.1.1
 		char* t_ipend = strstr(t_sSrcAddr,"/");
 		if(!t_ipend)
@@ -99,26 +100,67 @@ int	VA_Receive::init_socket()
 		memcpy(ipaddr,t_sSrcAddr,t_ipend-t_sSrcAddr);
 		//    addrSrv.sin_addr.S_un.S_addr=inet_addr("127.0.0.1");
 		printf("addr ip[%s],port:[%d]\n",ipaddr,port);
-		saddr.sin_addr.S_un.S_addr = inet_addr(ipaddr);
-		saddr.sin_port = port;
+		saddr.sin_addr.s_addr = inet_addr(ipaddr);
+		saddr.sin_port = htons(port);
 	}
 
+	unsigned long ul = 1;
+
+	if((ioctlsocket(m_iSocket, FIONBIO, (unsigned long*)&ul)) == SOCKET_ERROR)
+	{
+		printf("no blocking connect error,errorcode:[%u]"
+				,GetLastError());
+		ret = -2;
+		goto Init_Socket_End;
+	}
+	
 	//客户端用select方式去连接，服务器用epoll
 	if(connect(m_iSocket,(SOCKADDR *)&saddr,sizeof(saddr))!=0)  
     {  
-        printf("Connect to server(%s) failed!\n",m_SrcAddr);  
+        printf("Connect to server(%s) failed!,errorcode:[%u]\n"
+				,m_SrcAddr,WSAGetLastError());  
 		ret = -2;
-        goto Init_Socket_End; 
-    }  
-  
-
+       // goto Init_Socket_End; 
+    
+	
+	//进行select调用。
+		if(WSAGetLastError() == WSAEWOULDBLOCK )
+		{
+			struct timeval timeout;
+			fd_set r;
+			FD_ZERO(&r);
+			FD_SET(m_iSocket,&r);
+			timeout.tv_sec = TIMEOUT_SOCKET/1000;
+			timeout.tv_usec = 0;
+			ret = select(0,0,&r,0,&timeout);
+			if(ret <=0)
+			{
+				printf("select socket failed,errorcode:[%u]\n"
+					,WSAGetLastError());
+				ret = -2;
+				goto Init_Socket_End;
+			}
+			else
+			{
+				ret = 0;
+			}
+		}
+	} 
 
 Init_Socket_End:
 	return ret;
 }
 int VA_Receive::set_init(const char* src_addr,int mode)
 {
-	m_Mode=mode;
+	//修改模式，通过地址来自动判断。
+	if(strstr(src_addr,LIVE_PRE))
+	{
+		m_Mode = LIVE_MODE;
+	}
+	else
+	{
+		m_Mode = OFFLINE_MODE;
+	}
 	m_SrcAddr = (char*)calloc(sizeof(char),strlen(src_addr)+1);
 	memcpy(m_SrcAddr,src_addr,strlen(src_addr));
 	int ret = 0;
@@ -145,16 +187,24 @@ int VA_Receive::get_httpstatus()
 	char send_content[LINE_SIZE]={0};
 	memset(send_content,0,LINE_SIZE);
 
+	char* t_path = m_SrcAddr+strlen(LIVE_PRE);
+	if(t_path)
+	{
+		t_path = strstr(t_path,"/");
+	}
+
 	sprintf_s(send_content,sizeof(send_content),"GET %s HTTP/1.1\r\nHOST: localhost\
-												\r\nConnection: Keep-Alive\r\n\r\n");
+												\r\nConnection: Keep-Alive\r\n\r\n",t_path);
 
 	char recv_buf[LINE_SIZE*10]={0};
 	memset(recv_buf,0,LINE_SIZE*10); 
-	int recv_len = LINE_SIZE*10;
+	//int recv_len = LINE_SIZE*10;
+	int recv_len = 300;
 
 	ret = get_socketret(m_iSocket,send_content,strlen(send_content),recv_buf,recv_len);
 	
-	
+	//返回的数据类似HTTP/1.1 200 OK 以\r\n\r\n为http开头的结束。所以可针对的进行处理。
+	printf("rec_buf:[%s]\n",recv_buf);
 	return ret;
 }
 
@@ -191,9 +241,9 @@ int VA_Receive::get_socketret(int socket,char* send_buffer,int send_len,char* re
 		else
 		{
 			int ac_recvlen = recv(socket,recv_buf,recv_len - w_pos,0);
-			if(ac_recvlen > 0)
+			if(w_pos+ac_recvlen >= recv_len)
 			{
-				//
+				break;
 			}
 		}
 	}

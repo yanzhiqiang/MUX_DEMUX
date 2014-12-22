@@ -64,20 +64,20 @@ int Merge_FLV::merge_flv(const char* src_filename1,const char* src_filename2,con
 
 int Merge_FLV::handle_filetag(const char* src_filename,const char* dst_filename,unsigned char* script_content,double* duration)
 {
-	FILE* fp_src=NULL;
+	
 	FILE* fp_dst=NULL;
 	int ret = 0;
 	FLV_Demux* t_flvdemux = NULL;
 	int file_len = 2;
 
 	//open and init fp_src1,
-	fopen_s(&fp_src,src_filename,"rb");
+	
 	fopen_s(&fp_dst,dst_filename,"ab+");
 
-	if(!fp_src || !fp_dst)
+	if(!fp_dst)
 	{
-		printf("Merge_FLV::handle_filetag open [%s],return:[%x],open:[%s],return:[%x]\n"
-			,src_filename,fp_src,dst_filename,fp_dst);
+		printf("Merge_FLV::handle_filetag open [%s],return:[%x]\n"
+			,dst_filename,fp_dst);
 		ret = -1;
 		goto HANDLE_FILETAG_END;
 	}
@@ -211,11 +211,7 @@ int Merge_FLV::handle_filetag(const char* src_filename,const char* dst_filename,
 		m_dFileSize+=t_filesize;
 	}
 HANDLE_FILETAG_END:
-	if(fp_src)
-	{
-		fclose(fp_src);
-		fp_src = NULL;
-	}
+	
 	if(fp_dst)
 	{
 		fclose(fp_dst);

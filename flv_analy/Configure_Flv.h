@@ -3,6 +3,8 @@
 
 
 //定义接收模式是在线还是离线。
+#define LIVE_PRE		"http://"
+
 #define LIVE_MODE		0
 #define OFFLINE_MODE	1
 
@@ -23,6 +25,6 @@
 
 #define INVALID_SOCKET	0xFFFFFFFF
 
-#define	TIMEOUT_SOCKET	3000
+#define	TIMEOUT_SOCKET	15000
 
 #endif
