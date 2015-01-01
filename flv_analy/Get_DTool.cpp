@@ -389,3 +389,34 @@ int  chararray2intarray(char* src,char* delim,int* dst,int dst_num)
 	}
 	return 0;
 }
+
+
+int	 strstrend(char* src,char* pattern)
+{
+	if(!src || !pattern)
+	{
+		/*printf("src(%x) or pattern(%x) is NULL\n"
+				,src,pattern);*/
+		return -1;
+	}
+
+	if(strlen(pattern) > strlen(src))
+	{
+		printf("pattern len(%d) > src len(%d)\n"
+				,strlen(pattern),strlen(src));
+		return -1;
+	}
+
+	int index_p = strlen(src)-strlen(pattern);
+	for(int i =  index_p;i<strlen(src);i++)
+	{
+		if(src[i] != pattern[i-index_p])
+		{
+			
+			return -1;
+		}
+	}
+	printf("src(%s)  include pattern(%s)\n"
+					,src,pattern);
+	return 0;
+}

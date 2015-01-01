@@ -22,6 +22,9 @@ public:
 	int	get_httpstatus();
 
 	int get_socketret(int socket,char* send_buffer,int send_len,char* recv_buf,int recv_len);
+
+	int analy_httpstatus(char* httpstatus_head);
+	
 private:
 	int	init_socket();
 	char*	m_SrcAddr;

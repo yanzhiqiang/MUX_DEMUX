@@ -55,4 +55,9 @@ char* ×ªint
 */
 int  chararray2intarray(char* src,char* delim,int* dst,int dst_num);
 
+/*
+×Ö·û´®½áÊøÆ¥Åä
+*/
+int	 strstrend(char* src,char* pattern);
+
 #endif

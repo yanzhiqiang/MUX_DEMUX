@@ -198,15 +198,43 @@ int VA_Receive::get_httpstatus()
 
 	char recv_buf[LINE_SIZE*10]={0};
 	memset(recv_buf,0,LINE_SIZE*10); 
-	//int recv_len = LINE_SIZE*10;
-	int recv_len = 300;
+	int recv_len = LINE_SIZE*10;
+	//int recv_len = 1024*1024;
 
 	ret = get_socketret(m_iSocket,send_content,strlen(send_content),recv_buf,recv_len);
 	
 	//返回的数据类似HTTP/1.1 200 OK 以\r\n\r\n为http开头的结束。所以可针对的进行处理。
 	printf("rec_buf:[%s]\n",recv_buf);
+
+	int httpstatus_code = analy_httpstatus(recv_buf);
+	if( httpstatus_code != HTTP_STATUSOK)
+	{
+		printf("httpstatuscode[%d] != %d ,content:[%s] error\n"
+				,httpstatus_code,HTTP_STATUSOK,recv_buf);
+		ret = -1;
+	}
+
 	return ret;
 }
+
+int VA_Receive::analy_httpstatus(char* httpstatus_head)
+{
+	int http_status = 0;
+	if(!httpstatus_head)
+	{
+		printf("VA_Receive::analy_httpstatus httpstatus_head(%x) is NULL\n"
+			,httpstatus_head);
+		return -1;
+	}
+	
+	char* head_statuscode = NULL;
+	head_statuscode = strstr(httpstatus_head," ");
+	while((*head_statuscode)==' ') head_statuscode ++;
+	sscanf_s(head_statuscode,"%d ",&http_status);
+
+	return http_status;
+}
+	
 
 int VA_Receive::get_socketret(int socket,char* send_buffer,int send_len,char* recv_buf,int recv_len)
 {
@@ -221,6 +249,7 @@ int VA_Receive::get_socketret(int socket,char* send_buffer,int send_len,char* re
 
 	ULONGLONG timestamp = GetTickCount64();
 	int w_pos = 0;
+	//bool http_status = false;
 	while(GetTickCount64() <= timestamp + TIMEOUT_SOCKET*3)
 	{
 		//运用select
@@ -240,11 +269,39 @@ int VA_Receive::get_socketret(int socket,char* send_buffer,int send_len,char* re
 		}
 		else
 		{
-			int ac_recvlen = recv(socket,recv_buf,recv_len - w_pos,0);
-			if(w_pos+ac_recvlen >= recv_len)
+			int rec_unit = 1;
+			int ac_recvlen = recv(socket,recv_buf+w_pos,rec_unit,0);
+			
+			while(ac_recvlen > 0)
 			{
-				break;
+				w_pos+=rec_unit;
+
+				if(w_pos >= recv_len -1)
+				{
+					printf("recieve data already \n");
+					break;
+				}
+
+				////检测是否以\r\n结尾
+				//if(!http_status)
+				//{
+				//	if(strstrend(recv_buf,HTTP_STATUSEND) == 0)
+				//	{
+
+				//		http_status = true;
+				//	}
+				//}
+
+				if(strstrend(recv_buf,HTTP_HEADEND) == 0)
+				{
+					//头部收取完成。
+					return 0;
+				}
+
+				ac_recvlen = recv(socket,recv_buf+w_pos,rec_unit,0);
 			}
+			
+
 		}
 	}
 	return 0;

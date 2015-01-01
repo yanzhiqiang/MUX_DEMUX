@@ -4,6 +4,9 @@
 
 //定义接收模式是在线还是离线。
 #define LIVE_PRE		"http://"
+#define HTTP_STATUSEND	"\r\n"
+#define HTTP_HEADEND	"\r\n\r\n"
+#define HTTP_STATUSOK	200
 
 #define LIVE_MODE		0
 #define OFFLINE_MODE	1
