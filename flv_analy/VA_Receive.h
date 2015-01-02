@@ -24,6 +24,8 @@ public:
 	int get_socketret(int socket,char* send_buffer,int send_len,char* recv_buf,int recv_len);
 
 	int analy_httpstatus(char* httpstatus_head);
+
+	int analy_httplength(char* httpstatus_head);
 	
 private:
 	int	init_socket();
@@ -31,6 +33,9 @@ private:
 	int		m_Mode;
 	FILE*	m_Fp;
 	int		m_iSocket;
+	int		m_iContentLength;
+
+	int		m_iErrorCount;
 };
 
 #endif

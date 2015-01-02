@@ -420,3 +420,50 @@ int	 strstrend(char* src,char* pattern)
 					,src,pattern);
 	return 0;
 }
+
+
+int  get_socketvalue(int socket,unsigned char* recv_buf,int recv_len)
+{
+	ULONGLONG timestamp = GetTickCount64();
+	int w_pos = 0;
+	//bool http_status = false;
+	while(GetTickCount64() <= timestamp + TIMEOUT_SOCKET*3)
+	{
+		ULONGLONG now = GetTickCount64();
+		//ÔËÓÃselect
+		fd_set fd;  
+		FD_ZERO(&fd);  
+		FD_SET(socket,&fd);
+		timeval t = {TIMEOUT_SOCKET,1};
+		int iResult = select(0,&fd,NULL,NULL,&t);
+		if(iResult<0)
+		{
+			printf("select error\n");
+			return -1;
+		}
+		else if(iResult == 0)
+		{
+			continue;
+		}
+		else
+		{
+			int ac_recvlen = recv(socket,(char*)(recv_buf+w_pos),recv_len-w_pos,0);
+			
+			while(ac_recvlen > 0)
+			{
+				w_pos+=ac_recvlen;
+
+				if(w_pos >= recv_len)
+				{
+					//printf("recieve data already \n");
+					return w_pos;
+				}
+
+				ac_recvlen = recv(socket,(char*)(recv_buf+w_pos),recv_len-w_pos,0);
+			}
+			
+
+		}
+	}
+	return w_pos;
+}

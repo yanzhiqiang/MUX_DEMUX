@@ -30,4 +30,6 @@
 
 #define	TIMEOUT_SOCKET	15000
 
+#define	ERROR_IGNORECOUNT	3
+
 #endif

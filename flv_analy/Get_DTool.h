@@ -60,4 +60,6 @@ int  chararray2intarray(char* src,char* delim,int* dst,int dst_num);
 */
 int	 strstrend(char* src,char* pattern);
 
+
+int  get_socketvalue(int socket,unsigned char* recv_buf,int recv_len);
 #endif

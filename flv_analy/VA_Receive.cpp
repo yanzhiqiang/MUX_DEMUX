@@ -15,6 +15,8 @@ VA_Receive::VA_Receive()
 	m_Mode = OFFLINE_MODE;
 	m_Fp=NULL;
 	m_iSocket = INVALID_SOCKET;
+	m_iContentLength=-1;
+	m_iErrorCount=0;
 }
 
 VA_Receive::~VA_Receive()
@@ -28,6 +30,12 @@ VA_Receive::~VA_Receive()
 	{
 		fclose(m_Fp);
 		m_Fp=NULL;
+	}
+	if(m_iSocket!=INVALID_SOCKET)
+	{
+		closesocket(m_iSocket);
+		m_iSocket=INVALID_SOCKET;
+
 	}
 	if(LIVE_MODE == m_Mode)
 	{
@@ -213,7 +221,8 @@ int VA_Receive::get_httpstatus()
 				,httpstatus_code,HTTP_STATUSOK,recv_buf);
 		ret = -1;
 	}
-
+	analy_httplength(recv_buf);
+	printf("http content length:%d\n",m_iContentLength);
 	return ret;
 }
 
@@ -250,6 +259,7 @@ int VA_Receive::get_socketret(int socket,char* send_buffer,int send_len,char* re
 	ULONGLONG timestamp = GetTickCount64();
 	int w_pos = 0;
 	//bool http_status = false;
+	
 	while(GetTickCount64() <= timestamp + TIMEOUT_SOCKET*3)
 	{
 		//运用select
@@ -335,6 +345,49 @@ int VA_Receive::rec_data(int src_len,unsigned char* src_content,bool* over_flag)
 			*over_flag = true;
 		}
 	}
+	else
+	{
+		//
+		if(src_len <= m_iContentLength && m_iContentLength	!= -1)
+		{
+			ret_size = get_socketvalue(m_iSocket,src_content,src_len);
+		}
+		else
+		{
+			ret_size = get_socketvalue(m_iSocket,src_content,m_iContentLength);
+		}
+		if(m_iContentLength>0)
+		{
+			m_iContentLength-=ret_size;
+			if(m_iContentLength <=0)
+			{
+				*over_flag = true;
+			}
+		}
+		//连续三次返回0
+		if(ret_size<=0)
+		{
+			m_iErrorCount ++;
+			if(m_iErrorCount > ERROR_IGNORECOUNT)
+			{
+				*over_flag = true;
+			}
+		}
+	}
 
 	return ret_size;
+}
+
+
+int VA_Receive::analy_httplength(char* httpstatus_head)
+{
+	if(strstr(httpstatus_head,"Content-Length:"))
+	{
+		char* index_p  =  strstr(httpstatus_head,"Content-Length: ")+strlen("Content-Length: ");
+		if(index_p)
+		{
+			sscanf_s(index_p,"%d\r\n",&m_iContentLength);
+		}
+	}
+	return 0;
 }
